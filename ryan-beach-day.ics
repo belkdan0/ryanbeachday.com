@@ -5,8 +5,8 @@ CALSCALE:GREGORIAN
 BEGIN:VEVENT
 UID:ryan-beach-day-2026@ryanbeachday.com
 DTSTAMP:20260907T000000Z
-DTSTART;VALUE=DATE:20260919
-DTEND;VALUE=DATE:20260920
+DTSTART;VALUE=DATE:20260920
+DTEND;VALUE=DATE:20260921
 SUMMARY:Ryan's Beach Day - 25th Nameday Bash
 DESCRIPTION:Join us at Will Rogers Beach to celebrate Ryan's 25th nameday! Time TBD - more details coming closer to the date.
 LOCATION:Will Rogers Beach
