@@ -2005,15 +2005,15 @@
   var openReplyFormFor = null;
 
   // Set this once you've registered the app in Firebase Console -> App Check
-  // -> reCAPTCHA v3 provider. Left as-is, App Check activation is skipped
-  // entirely so a placeholder can never block real traffic.
-  var RECAPTCHA_SITE_KEY = 'REPLACE_WITH_RECAPTCHA_V3_SITE_KEY';
+  // -> reCAPTCHA Enterprise provider. Left as-is, App Check activation is
+  // skipped entirely so a placeholder can never block real traffic.
+  var RECAPTCHA_SITE_KEY = 'REPLACE_WITH_RECAPTCHA_ENTERPRISE_SITE_KEY';
 
   try {
     firebase.initializeApp(firebaseConfig);
     if (RECAPTCHA_SITE_KEY.indexOf('REPLACE_WITH') !== 0) {
       firebase.appCheck().activate(
-        new firebase.appCheck.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+        new firebase.appCheck.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
         true
       );
     }
