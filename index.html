@@ -2002,12 +2002,31 @@
     boardStatusEl.textContent = "Couldn't connect to the message board right now. Try refreshing the page.";
   }
 
+  function withTimeout(promise, ms, code) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () {
+        reject({ code: code || 'timeout', message: 'Timed out after ' + ms + 'ms' });
+      }, ms);
+      promise.then(function (v) {
+        clearTimeout(timer);
+        resolve(v);
+      }, function (e) {
+        clearTimeout(timer);
+        reject(e);
+      });
+    });
+  }
+
   function uploadMediaFile(file) {
     var path = 'board-uploads/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '_' + file.name;
     var ref = fsStorage.ref(path);
-    return ref.put(file).then(function (snapshot) {
-      return snapshot.ref.getDownloadURL();
-    });
+    return withTimeout(
+      ref.put(file).then(function (snapshot) {
+        return snapshot.ref.getDownloadURL();
+      }),
+      20000,
+      'storage/timeout'
+    );
   }
 
   function pickAvatarForName(name, usedSet) {
@@ -2307,7 +2326,13 @@
   rsvpBtn.addEventListener('click', function () { switchScreen('rsvp'); });
 
   document.getElementById('venmoBtn').addEventListener('click', function () {
-    window.open('https://venmo.com/Daniel-Belkind?txn=pay', '_blank', 'noopener');
+    var a = document.createElement('a');
+    a.href = 'https://venmo.com/Daniel-Belkind?txn=pay';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   });
 })();
 </script>
