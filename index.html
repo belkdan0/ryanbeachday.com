@@ -1674,9 +1674,11 @@
       return createPost(name, message, url, '', true);
     }).then(function () {
       closeAlbumUploadModal();
-    }).catch(function () {
+    }).catch(function (err) {
+      console.error('album upload failed:', err);
       albumUploadSubmitBtn.disabled = false;
       albumUploadSubmitBtn.textContent = 'Upload';
+      alert("Couldn't upload — " + (err && err.code ? err.code : 'unknown error') + ". Try again in a moment.");
     });
   });
 
@@ -2040,6 +2042,11 @@
         includeInAlbum: true,
         createdAt: Date.now()
       });
+    }).catch(function (err) {
+      console.error('seedWelcomePost failed:', err);
+      boardStatusEl.hidden = false;
+      boardStatusEl.textContent = "Couldn't set up the message board (" + err.code + "). The Firestore " +
+        "security rules likely need updating — see the site owner.";
     });
   }
 
@@ -2130,11 +2137,12 @@
           return createPost(name, text, imageUrl, parentId, includeInAlbum);
         }).then(function () {
           openReplyFormFor = null;
-        }).catch(function () {
+        }).catch(function (err) {
+          console.error('reply failed:', err);
           btn.disabled = false;
           btn.textContent = 'Post Reply';
           boardStatusEl.hidden = false;
-          boardStatusEl.textContent = "Couldn't post your reply — try again in a moment.";
+          boardStatusEl.textContent = "Couldn't post your reply" + (err && err.code ? " (" + err.code + ")" : "") + " — try again in a moment.";
         });
       });
     });
@@ -2219,11 +2227,12 @@
       document.getElementById('boardIncludeInAlbum').checked = false;
       submitBtn.disabled = false;
       submitBtn.textContent = 'Post Message';
-    }).catch(function () {
+    }).catch(function (err) {
+      console.error('post failed:', err);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Post Message';
       boardStatusEl.hidden = false;
-      boardStatusEl.textContent = "Couldn't post your message — try again in a moment.";
+      boardStatusEl.textContent = "Couldn't post your message" + (err && err.code ? " (" + err.code + ")" : "") + " — try again in a moment.";
     });
   });
 
