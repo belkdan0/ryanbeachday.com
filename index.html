@@ -131,6 +131,14 @@
     container-type: inline-size;
   }
 
+  @media (max-width: 600px) {
+    .hero {
+      aspect-ratio: auto;
+      min-height: 480px;
+      padding: 16px 0;
+    }
+  }
+
   .intro-copy {
     display: flex;
     flex-direction: column;
@@ -1510,6 +1518,7 @@
       storyPanelEl.hidden = false;
       requestAnimationFrame(function () {
         storyPanelEl.classList.add('show');
+        sizeCanvases();
       });
     }, 450);
   }
