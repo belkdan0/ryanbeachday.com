@@ -2031,16 +2031,21 @@
 
   function seedWelcomePost() {
     var authorRef = fsDb.collection('authors').doc(slugifyAuthorKey('Dano'));
-    authorRef.set({ displayName: 'Dano', avatarUrl: JANGO_FETT_AVATAR, createdAt: Date.now() }).then(function () {
-      return fsDb.collection('posts').add({
-        author: 'Dano',
-        avatarUrl: JANGO_FETT_AVATAR,
-        text: "Let's get this message board popping. I got no official beach day updates yet, but I'm " +
-          "thinking about that time Ryan got a hot dog at the movies. #Glizzy4ChristopherNolan",
-        imageUrl: 'assets/board/hotdog-movies.jpg',
-        parentId: '',
-        includeInAlbum: true,
-        createdAt: Date.now()
+    authorRef.get().then(function (snap) {
+      var ensureAuthor = snap.exists
+        ? Promise.resolve()
+        : authorRef.set({ displayName: 'Dano', avatarUrl: JANGO_FETT_AVATAR, createdAt: Date.now() });
+      return ensureAuthor.then(function () {
+        return fsDb.collection('posts').add({
+          author: 'Dano',
+          avatarUrl: JANGO_FETT_AVATAR,
+          text: "Let's get this message board popping. I got no official beach day updates yet, but I'm " +
+            "thinking about that time Ryan got a hot dog at the movies. #Glizzy4ChristopherNolan",
+          imageUrl: 'assets/board/hotdog-movies.jpg',
+          parentId: '',
+          includeInAlbum: true,
+          createdAt: Date.now()
+        });
       });
     }).catch(function (err) {
       console.error('seedWelcomePost failed:', err);
