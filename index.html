@@ -702,20 +702,15 @@
     margin-bottom: 0;
   }
 
-  .plain-checkbox {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
+  .plain-checkbox-row {
+    margin-top: 10px;
+  }
+
+  .plain-checkbox-row label {
     font-family: "Times New Roman", Times, serif;
     font-size: 12px;
     color: #555;
-    margin-top: 6px;
     cursor: pointer;
-  }
-
-  .plain-checkbox input {
-    margin-top: 3px;
-    flex: none;
   }
 
   .avatar-preview {
@@ -992,11 +987,13 @@
           <div class="field-row">
             <label class="field-label" for="boardImage">Attach a photo/video (optional)</label>
             <input class="text-field" type="file" id="boardImage" name="image_file" accept="image/*,video/*">
-            <label class="plain-checkbox">
+            <div class="plain-checkbox-row">
               <input type="checkbox" id="boardIncludeInAlbum">
-              Check this box if you would like this image/video from your post to also be included
-              in the photo album automatically
-            </label>
+              <label for="boardIncludeInAlbum">
+                Check this box if you would like this image/video from your post to also be included
+                in the photo album automatically
+              </label>
+            </div>
           </div>
 
           <div class="submit-row">
@@ -2078,11 +2075,13 @@
         '<div class="field-row">' +
         '<label class="field-label">Attach a photo/video (optional)</label>' +
         '<input class="text-field reply-image" type="file" accept="image/*,video/*">' +
-        '<label class="plain-checkbox">' +
-        '<input type="checkbox" class="reply-include-album">' +
+        '<div class="plain-checkbox-row">' +
+        '<input type="checkbox" class="reply-include-album" id="replyIncludeAlbum">' +
+        '<label for="replyIncludeAlbum">' +
         'Check this box if you would like this image/video from your post to also be included in ' +
         'the photo album automatically' +
         '</label>' +
+        '</div>' +
         '</div>' +
         '<div class="submit-row">' +
         '<button type="button" class="reply-submit" data-parent="' + escapeHtml(postId) + '">Post Reply</button>' +
