@@ -35,19 +35,14 @@ window.RyanBeachdayFx = (function () {
       Math.round(lerp(c1[2], c2[2], t)) + ')';
   }
 
+  var overscanActive = false;
+
   function ensureLayers(targetContainer) {
     container = targetContainer;
     if (canvas) return;
 
-    var overscanPct = (OVERSCAN * 100) + '%';
-    var spanPct = (100 + OVERSCAN * 200) + '%';
-
     flash = document.createElement('div');
     flash.style.position = 'absolute';
-    flash.style.top = '-' + overscanPct;
-    flash.style.left = '-' + overscanPct;
-    flash.style.width = spanPct;
-    flash.style.height = spanPct;
     flash.style.zIndex = '9998';
     flash.style.background =
       'radial-gradient(circle, #fff4cc 0%, #ffb347 30%, #a83c10 65%, #1a0800 100%)';
@@ -57,25 +52,42 @@ window.RyanBeachdayFx = (function () {
 
     canvas = document.createElement('canvas');
     canvas.style.position = 'absolute';
-    canvas.style.top = '-' + overscanPct;
-    canvas.style.left = '-' + overscanPct;
-    canvas.style.width = spanPct;
-    canvas.style.height = spanPct;
     canvas.style.zIndex = '9999';
     canvas.style.pointerEvents = 'none';
     canvas.style.imageRendering = 'pixelated';
     container.appendChild(canvas);
 
     ctx = canvas.getContext('2d');
-    sizeCanvas();
+    setOverscan(false);
     window.addEventListener('resize', sizeCanvas);
+  }
+
+  /**
+   * Toggles the layers between flush-to-container (the resting state, so
+   * they never inflate the page's scrollable area) and overscanned (only
+   * while a burst is actively covering the screen, so embers can spill
+   * past the container's edges for the effect).
+   */
+  function setOverscan(active) {
+    overscanActive = active;
+    var pct = active ? OVERSCAN : 0;
+    var offset = '-' + (pct * 100) + '%';
+    var span = (100 + pct * 200) + '%';
+    [flash, canvas].forEach(function (el) {
+      el.style.top = offset;
+      el.style.left = offset;
+      el.style.width = span;
+      el.style.height = span;
+    });
+    sizeCanvas();
   }
 
   function sizeCanvas() {
     if (!container) return;
     var rect = container.getBoundingClientRect();
-    var w = rect.width * (1 + OVERSCAN * 2);
-    var h = rect.height * (1 + OVERSCAN * 2);
+    var factor = overscanActive ? (1 + OVERSCAN * 2) : 1;
+    var w = rect.width * factor;
+    var h = rect.height * factor;
     canvas.width = Math.max(1, Math.ceil(w / PIXEL));
     canvas.height = Math.max(1, Math.ceil(h / PIXEL));
     ctx.imageSmoothingEnabled = false;
@@ -191,7 +203,7 @@ window.RyanBeachdayFx = (function () {
     }
 
     ensureLayers(targetContainer);
-    sizeCanvas();
+    setOverscan(true);
 
     var rect = targetContainer.getBoundingClientRect();
     spawnFireball(rect.width * (OVERSCAN + 0.5), rect.height * (OVERSCAN + 0.5), 8);
@@ -211,6 +223,10 @@ window.RyanBeachdayFx = (function () {
       flash.style.transition = 'opacity ' + DISSIPATE_MS + 'ms ease';
       flash.style.opacity = '0';
     }, COVER_MS + HOLD_MS);
+
+    setTimeout(function () {
+      setOverscan(false);
+    }, COVER_MS + HOLD_MS + DISSIPATE_MS + 50);
   }
 
   return { burst: burst };

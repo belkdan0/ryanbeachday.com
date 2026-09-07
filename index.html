@@ -49,7 +49,25 @@
   }
 
   @media (max-width: 900px) {
-    .sticker { display: none; }
+    .desktop {
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 16px;
+    }
+
+    .sticker-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .sticker {
+      position: static;
+      width: 64px;
+      transform: none !important;
+    }
   }
 
   .browser-window {
@@ -735,8 +753,10 @@
 </head>
 <body>
 <div class="desktop">
-  <img class="sticker sticker-panda" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXRucjl6MGFsZ2Q4d2tkdTB2OWJwOXNxZDA4Yjg5ODM3YXQwejFnaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jDu9R1oxkbsYtoxtVn/giphy.gif" alt="" loading="lazy">
-  <img class="sticker sticker-chelsea" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHVodzluOXJhZmh2MnRjbjA4aTY5OHFtNWVqaDh3ZjRlbWhheGhlayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U54uzKMCnf2QE/giphy.gif" alt="" loading="lazy">
+  <div class="sticker-row">
+    <img class="sticker sticker-panda" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXRucjl6MGFsZ2Q4d2tkdTB2OWJwOXNxZDA4Yjg5ODM3YXQwejFnaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jDu9R1oxkbsYtoxtVn/giphy.gif" alt="" loading="lazy">
+    <img class="sticker sticker-chelsea" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHVodzluOXJhZmh2MnRjbjA4aTY5OHFtNWVqaDh3ZjRlbWhheGhlayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U54uzKMCnf2QE/giphy.gif" alt="" loading="lazy">
+  </div>
   <div class="window browser-window" id="browserWindow">
 
     <div class="title-bar">
