@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thanks - Ryan Beachday</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/98.css@0.1.20/dist/98.css">
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: #c0c0c0;
+    font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;
+  }
+
+  .desktop {
+    min-height: 100vh;
+    padding: 24px 12px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .browser-window {
+    width: 100%;
+    max-width: 560px;
+    height: fit-content;
+  }
+
+  .title-bar-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .window-body.page-frame {
+    margin: 0;
+    padding: 26px 24px;
+    background: #fff;
+    text-align: center;
+    font-family: "Times New Roman", Times, serif;
+  }
+
+  .window-body.page-frame h1 {
+    font-size: 22px;
+    margin-top: 0;
+  }
+
+  .window-body.page-frame p {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .rainbow-hr {
+    height: 4px;
+    border: none;
+    margin: 14px 0 18px;
+    background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+  }
+
+  .window-body.page-frame button {
+    font-size: 13px;
+    padding: 6px 18px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="desktop">
+  <div class="window browser-window">
+
+    <div class="title-bar">
+      <div class="title-bar-text">
+        <span>&#127760;</span> Thanks! - Microsoft Internet Explorer
+      </div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+
+    <div class="window-body page-frame" id="pageFrame">
+      <h1 id="thanksHeading">&#127958;&#65039; RSVP Received!</h1>
+      <hr class="rainbow-hr">
+      <p id="thanksMessage">Thanks for RSVPing to Ryan Beachday's big 25th nameday bash. See you at Will Rogers beach!</p>
+      <button type="button" id="calendarBtn" hidden>&#128197; Add to Calendar</button>
+      <br>
+      <button type="button" id="homeBtn">Back to ryanbeachday.com</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var attending = new URLSearchParams(location.search).get('attending');
+  var type = new URLSearchParams(location.search).get('type');
+
+  if (type === 'board') {
+    document.getElementById('thanksHeading').innerHTML = '&#128172; Message Received!';
+    document.getElementById('thanksMessage').textContent =
+      "Thanks for your post! Dan will review it and add it to the message board soon.";
+  } else if (attending === 'no') {
+    document.getElementById('thanksHeading').innerHTML = '&#128557; You\'ll Be Missed!';
+    document.getElementById('thanksMessage').textContent =
+      "Thanks for letting us know. You'll be dearly missed at Ryan Beach Day! Just in case anything " +
+      'changes: it\'s happening Saturday, September 19th (Time TBD) at Will Rogers beach. Please let ' +
+      'Dan know if your plans change.';
+  } else if (attending === 'yes') {
+    document.getElementById('thanksMessage').textContent =
+      "Thanks for RSVPing to Ryan Beach Day's big 25th nameday bash! We'll see you Saturday, " +
+      'September 19th (Time TBD) at Will Rogers beach.';
+    document.getElementById('calendarBtn').hidden = false;
+  }
+
+  document.getElementById('calendarBtn').addEventListener('click', function () {
+    location.href = 'ryan-beach-day.ics';
+  });
+
+  document.getElementById('homeBtn').addEventListener('click', function () {
+    location.href = 'index.html';
+  });
+</script>
+</body>
+</html>

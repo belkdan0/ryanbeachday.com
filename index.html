@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ryan Beachday</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/98.css@0.1.20/dist/98.css">
+<script src="explosion.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <style>
   * { box-sizing: border-box; }
 
@@ -12,38 +16,54 @@
     margin: 0;
     padding: 0;
     min-height: 100%;
+    overflow-x: hidden;
     background: #c0c0c0;
     font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;
   }
 
   .desktop {
+    position: relative;
     min-height: 100vh;
-    padding: 0;
+    padding: 24px 12px;
     display: flex;
+    justify-content: center;
+  }
+
+  .sticker {
+    position: absolute;
+    width: 110px;
+    pointer-events: none;
+    filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.35));
+  }
+
+  .sticker-panda {
+    top: 24px;
+    left: 24px;
+    transform: rotate(-8deg);
+  }
+
+  .sticker-chelsea {
+    top: 24px;
+    right: 24px;
+    transform: rotate(8deg);
+  }
+
+  @media (max-width: 900px) {
+    .sticker { display: none; }
   }
 
   .browser-window {
+    position: relative;
     width: 100%;
-    max-width: none;
-    min-height: 100vh;
+    max-width: 800px;
     height: fit-content;
-    display: flex;
-    flex-direction: column;
+    cursor: url('assets/cursor-face.png') 12 2, auto;
   }
 
   .title-bar-text {
     display: flex;
     align-items: center;
     gap: 6px;
-  }
-
-  .menu-bar {
-    display: flex;
-    gap: 14px;
-    padding: 3px 8px;
-    font-size: 11px;
-    border-bottom: 1px solid #808080;
-    background: #c0c0c0;
   }
 
   .toolbar-row {
@@ -61,27 +81,20 @@
     padding: 2px 8px;
   }
 
-  .address-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 6px;
-    background: #c0c0c0;
-    border-bottom: 2px solid #808080;
-  }
-
-  .address-row span.label { font-size: 11px; }
-
-  .address-row input[type="text"] {
-    flex: 1;
-    font-size: 11px;
+  .toolbar-row button:hover {
+    background: #dcdcdc;
+    outline: 1px dotted #000;
+    outline-offset: -4px;
   }
 
   .window-body.page-frame {
     margin: 0;
     padding: 0;
     background: #fff;
-    flex: 1;
+  }
+
+  .text-screen {
+    padding: 18px 22px 26px;
   }
 
   /* ---- hero / splash ---- */
@@ -89,12 +102,27 @@
   .hero {
     position: relative;
     background: #000;
-    min-height: 62vh;
+    aspect-ratio: 4 / 3;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    container-type: inline-size;
+  }
+
+  .intro-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: opacity 0.45s ease;
+  }
+
+  .intro-copy[hidden] { display: none; }
+
+  .intro-copy.leaving {
+    opacity: 0;
+    pointer-events: none;
   }
 
   canvas.layer {
@@ -130,10 +158,10 @@
     margin: 0;
     padding: 0 0.3em;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
     font-family: "Arial Black", Arial, sans-serif;
-    font-size: clamp(1.5rem, 7.5vw, 4.6rem);
+    font-size: clamp(1.2rem, 9cqw, 3.2rem);
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
@@ -175,39 +203,400 @@
     position: relative;
     z-index: 2;
     margin-top: 1rem;
-    color: #fff;
-    font-family: "Courier New", Courier, monospace;
-    font-size: clamp(0.65rem, 2vw, 1rem);
-    letter-spacing: 0.3em;
+    font-size: 13px;
+    padding: 6px 16px;
     opacity: 0;
-    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
   }
 
   #sub.show { opacity: 1; animation: blink 1.1s steps(1) infinite; }
 
   @keyframes blink { 50% { opacity: 0.2; } }
 
-  /* ---- page content (1999 tribute) ---- */
+  /* ---- story reveal ---- */
 
-  .page-content {
-    padding: 18px 22px 26px;
-    font-family: "Times New Roman", Times, serif;
-    color: #000;
-    font-size: 16px;
-    line-height: 1.5;
+  .story-panel {
+    position: relative;
+    z-index: 2;
+    max-width: 620px;
+    padding: 1.3em 1.6em;
+    text-align: center;
+    color: #fff;
+    font-family: "Courier New", Courier, monospace;
+    font-size: clamp(0.95rem, 2.2vw, 1.25rem);
+    line-height: 1.65;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 6px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    transition: opacity 0.6s ease;
   }
 
-  .page-content h2 {
+  .story-panel.show { opacity: 1; }
+
+  .highlight {
+    background: #ffe600;
+    color: #000;
+    font-weight: bold;
+    text-decoration: underline;
+    padding: 0 3px;
+  }
+
+  .continue-btn {
+    margin-top: 1.2em;
+    font-size: 13px;
+    padding: 6px 16px;
+    animation: blink 1.1s steps(1) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .letter { opacity: 1 !important; transform: none !important; animation: none !important; }
+    #sub { opacity: 1 !important; animation: none !important; }
+    .continue-btn { animation: none !important; }
+    canvas#bg { opacity: 1 !important; transition: none !important; }
+    .intro-copy, .story-panel { transition: none !important; }
+  }
+
+  /* ---- shared text-screen elements ---- */
+
+  h1.page-title {
     font-family: "Times New Roman", Times, serif;
-    font-size: 20px;
+    font-size: 22px;
+    margin: 0 0 4px;
+  }
+
+  p.intro-line {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    color: #333;
     margin-top: 0;
   }
 
   .rainbow-hr {
     height: 4px;
     border: none;
-    margin: 14px 0;
+    margin: 14px 0 18px;
     background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+  }
+
+  .event-info {
+    text-align: center;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    margin: 0 0 16px;
+    border: 1px inset #808080;
+    background: #ffe600;
+    color: #000;
+  }
+
+  .site-footer {
+    text-align: center;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12px;
+    margin-top: 20px;
+    color: #333;
+  }
+
+  /* ---- RSVP form ---- */
+
+  .field-row {
+    margin-bottom: 16px;
+    font-family: "Times New Roman", Times, serif;
+  }
+
+  .field-row > label.field-label {
+    display: block;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .inline-fields {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .inline-field {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  .inline-field .field-label {
+    display: block;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .toggle-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-option {
+    flex: 1;
+    min-width: 180px;
+    display: block;
+  }
+
+  .toggle-option input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .toggle-btn {
+    display: block;
+    padding: 10px 14px;
+    font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;
+    font-size: 14px;
+    text-align: center;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    user-select: none;
+  }
+
+  .toggle-btn:hover {
+    background: #d4d4d4;
+  }
+
+  .toggle-option input:checked + .toggle-btn {
+    background: #b6b6b6;
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .toggle-option input:focus-visible + .toggle-btn {
+    outline: 1px dotted #000;
+    outline-offset: -3px;
+  }
+
+  .plus-one-fields {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px inset #808080;
+    background: #f4f4f4;
+  }
+
+  .plus-one-fields label.field-label {
+    margin-top: 10px;
+  }
+
+  .plus-one-fields label.field-label:first-child {
+    margin-top: 0;
+  }
+
+  input[type="text"].text-field,
+  input[type="email"].text-field,
+  input[type="tel"].text-field,
+  input[type="url"].text-field,
+  input[type="number"].text-field,
+  input[type="file"].text-field,
+  textarea.text-field {
+    width: 100%;
+    font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;
+    font-size: 13px;
+    padding: 4px 6px;
+  }
+
+  input[type="tel"].text-field,
+  input[type="url"].text-field {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    border-radius: 0;
+    background-color: #fff;
+    box-shadow: inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+    box-sizing: border-box;
+    height: 21px;
+    line-height: 2;
+  }
+
+  input[type="tel"].text-field:focus,
+  input[type="url"].text-field:focus {
+    outline: none;
+  }
+
+  textarea.text-field {
+    resize: vertical;
+    min-height: 70px;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .submit-row button {
+    font-size: 14px;
+    padding: 6px 20px;
+  }
+
+  .submit-row button:hover,
+  .album-link-row button:hover {
+    background: #dcdcdc;
+    outline: 1px dotted #000;
+    outline-offset: -4px;
+  }
+
+  .album-link-row {
+    margin-top: 24px;
+    padding-top: 14px;
+    border-top: 1px solid #c0c0c0;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .album-link-row button {
+    font-size: 12px;
+    padding: 4px 14px;
+    margin-top: 6px;
+  }
+
+  /* ---- leave-page warning dialog ---- */
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .warning-window { width: 100%; max-width: 380px; }
+
+  .warning-body {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .warning-icon {
+    flex: none;
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  .warning-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .warning-buttons button {
+    font-size: 13px;
+    padding: 5px 14px;
+  }
+
+  /* ---- photo album lightbox ---- */
+
+  .lightbox-window {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .lightbox-media {
+    display: flex;
+    justify-content: center;
+    background: #000;
+    margin-bottom: 12px;
+  }
+
+  .lightbox-media img,
+  .lightbox-media video {
+    max-width: 100%;
+    max-height: 60vh;
+    display: block;
+  }
+
+  .lightbox-meta {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .lightbox-meta .board-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* ---- photo galleries ---- */
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+  }
+
+  .photo-slot {
+    aspect-ratio: 1;
+    border: 2px dashed #999;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12px;
+    color: #777;
+    padding: 8px;
+  }
+
+  .photo-slot:hover,
+  .photo-slot:focus-visible {
+    background: #e4e4e4;
+    border-color: #666;
+    color: #444;
+  }
+
+  .photo-grid img,
+  .photo-grid video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 2px solid #808080;
+    display: block;
+  }
+
+  .filled-slot {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  .coming-soon {
+    text-align: center;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 15px;
+    color: #333;
+    margin: 22px 0;
+    padding: 14px;
+    border: 1px inset #808080;
+    background: #ddd;
   }
 
   .construction {
@@ -215,101 +604,149 @@
     color: #fff;
     text-align: center;
     font-family: Impact, "Arial Black", sans-serif;
-    font-size: 14px;
-    padding: 6px 4px;
-    margin: 14px 0;
+    font-size: 16px;
+    padding: 10px 6px;
+    margin: 18px 0;
     text-shadow: 1px 1px 2px #000;
   }
 
-  .blink-new {
-    color: red;
-    font-weight: bold;
-    animation: blink 1s steps(1) infinite;
-  }
-
-  .links-list {
-    font-family: "Times New Roman", Times, serif;
-    font-size: 15px;
-  }
-
-  .links-list a { color: #0000ee; }
-  .links-list a:visited { color: #551a8b; }
-
-  .marquee-wrap {
-    overflow: hidden;
-    white-space: nowrap;
-    border: 1px inset #808080;
-    background: #000;
-    color: #0f0;
-    font-family: "Courier New", Courier, monospace;
-    padding: 4px 0;
-    margin: 14px 0;
-  }
-
-  .marquee-track {
-    display: inline-block;
-    padding-left: 100%;
-    animation: marquee 14s linear infinite;
-  }
-
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
-  }
-
-  .counter-box {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px inset #808080;
-    padding: 4px 8px;
-    background: #ddd;
-    font-family: "Times New Roman", Times, serif;
-    font-size: 13px;
-  }
-
-  .counter-digits {
-    background: #000;
-    color: #0f0;
-    font-family: "Courier New", Courier, monospace;
-    font-weight: bold;
-    letter-spacing: 2px;
-    padding: 2px 6px;
-  }
-
-  .webring {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-
-  .webring button { font-size: 11px; }
-
-  .site-footer {
+  .construction-note {
     text-align: center;
     font-family: "Times New Roman", Times, serif;
-    font-size: 12px;
-    margin-top: 18px;
+    font-size: 15px;
     color: #333;
+    margin: 18px 0;
+    padding: 16px;
+    border: 1px inset #808080;
+    background: #ddd;
+    line-height: 1.6;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .letter { opacity: 1 !important; transform: none !important; animation: none !important; }
-    #sub { opacity: 1 !important; animation: none !important; }
-    canvas#bg { opacity: 1 !important; transition: none !important; }
-    .marquee-track { animation: none !important; }
-    .blink-new { animation: none !important; }
+  /* ---- message board ---- */
+
+  .board-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .board-post {
+    border: 1px inset #808080;
+    background: #f7f7f7;
+    padding: 10px 12px;
+  }
+
+  .board-post-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .board-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #808080;
+    flex: none;
+  }
+
+  .board-author {
+    font-family: "Times New Roman", Times, serif;
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  .board-time {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 11px;
+    color: #666;
+    margin-left: auto;
+  }
+
+  .board-post-text {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  .board-post-image {
+    max-width: 100%;
+    margin-top: 8px;
+    border: 2px solid #808080;
+    display: block;
+  }
+
+  .board-reply-btn {
+    font-size: 11px;
+    padding: 2px 10px;
+    margin-top: 8px;
+  }
+
+  .board-reply-form {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px inset #808080;
+    background: #eee;
+  }
+
+  .board-reply-form .field-row {
+    margin-bottom: 10px;
+  }
+
+  .board-reply-form .field-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .plain-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12px;
+    color: #555;
+    margin-top: 6px;
+    cursor: pointer;
+  }
+
+  .plain-checkbox input {
+    margin-top: 3px;
+    flex: none;
+  }
+
+  .avatar-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 13px;
+    color: #555;
+  }
+
+  .avatar-preview img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #808080;
+    flex: none;
   }
 </style>
 </head>
 <body>
 <div class="desktop">
-  <div class="window browser-window">
+  <img class="sticker sticker-panda" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXRucjl6MGFsZ2Q4d2tkdTB2OWJwOXNxZDA4Yjg5ODM3YXQwejFnaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jDu9R1oxkbsYtoxtVn/giphy.gif" alt="" loading="lazy">
+  <img class="sticker sticker-chelsea" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHVodzluOXJhZmh2MnRjbjA4aTY5OHFtNWVqaDh3ZjRlbWhheGhlayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U54uzKMCnf2QE/giphy.gif" alt="" loading="lazy">
+  <div class="window browser-window" id="browserWindow">
 
     <div class="title-bar">
       <div class="title-bar-text">
-        <span>&#127760;</span> Ryan Beachday's Website - Microsoft Internet Explorer
+        <span>&#127760;</span> Ryan Beach Day Website - Microsoft Internet Explorer
       </div>
       <div class="title-bar-controls">
         <button aria-label="Minimize"></button>
@@ -318,69 +755,277 @@
       </div>
     </div>
 
-    <div class="menu-bar">
-      <span>File</span><span>Edit</span><span>View</span><span>Favorites</span><span>Tools</span><span>Help</span>
-    </div>
-
     <div class="toolbar-row">
-      <button>&#8592; Back</button>
-      <button>&#8594; Forward</button>
-      <button>&#10006; Stop</button>
-      <button>&#8635; Refresh</button>
-      <button>&#8962; Home</button>
-    </div>
-
-    <div class="address-row">
-      <span class="label">Address</span>
-      <input type="text" readonly value="C:\My Documents\ryanbeachday\index.html">
-      <button>Go</button>
+      <button type="button" id="homeBtn">&#8962; Home</button>
+      <button type="button" id="rsvpNavBtn">RSVP</button>
+      <button type="button" id="albumNavBtn">Photo Album</button>
+      <button type="button" id="boardNavBtn">Message Board</button>
+      <button type="button" id="comingSoonNavBtn">COMING SOON...</button>
+      <button type="button" id="supportNavBtn">Support This Website</button>
     </div>
 
     <div class="window-body page-frame">
 
-      <div class="hero" id="hero">
-        <canvas id="bg" class="layer"></canvas>
-        <canvas id="fx" class="layer"></canvas>
-        <h1 id="title" aria-label="RYAN BEACH DAY"></h1>
-        <div id="sub">- WELCOME TO THE SITE -</div>
+      <!-- ===== HOME SCREEN ===== -->
+      <div class="screen" id="screenHome">
+        <div class="hero" id="hero">
+          <canvas id="bg" class="layer"></canvas>
+          <canvas id="fx" class="layer"></canvas>
+
+          <div class="intro-copy" id="introCopy">
+            <h1 id="title" aria-label="RYAN BEACH DAY"></h1>
+            <button type="button" id="sub">CLICK HERE TO CONTINUE</button>
+          </div>
+
+          <div class="story-panel" id="storyPanel" hidden>
+            <p>
+              Welcome to ryanbeachday.com. If you are on this website, boy are you in for a treat.
+              We will be celebrating our sweet, sweet boy's 25th nameday by romping around in the
+              sun and having a grand ol' time in his honor. Please join us at
+              <span class="highlight">Will Rogers beach</span> on
+              <span class="highlight">Saturday, September 19th</span>, at noonish (idk we'll send you
+              more info closer to the date if you RSVP).
+            </p>
+            <button type="button" class="continue-btn" id="rsvpBtn">Click to RSVP &raquo;</button>
+          </div>
+        </div>
       </div>
 
-      <div class="page-content">
-        <h2>Hi, I'm Ryan.</h2>
-        <p>
-          You have reached the official home page of <strong>Ryan Beachday</strong>, somewhere on the
-          Information Superhighway. This site looks and works best in Netscape Navigator 4.51 or
-          Internet Explorer 5, at a resolution of 800&times;600.
-        </p>
+      <!-- ===== RSVP SCREEN ===== -->
+      <div class="screen text-screen" id="screenRsvp" hidden>
 
-        <div class="construction">&#128679; THIS PAGE IS UNDER CONSTRUCTION &#128679;</div>
+        <h1 class="page-title">You're Invited!</h1>
+        <p class="intro-line">Fill out the form below to let us know you're coming.</p>
 
-        <p>
-          Thanks for stopping by! Please check back soon for more updates.
-          <span class="blink-new">NEW!</span>
-        </p>
+        <div class="event-info">
+          &#128197; <strong>September 19th</strong> &middot; &#128337; <strong>Time TBD</strong> &middot;
+          &#128205; <strong>Will Rogers beach</strong>
+        </div>
 
         <hr class="rainbow-hr">
 
-        <ul class="links-list">
-          <li><a href="#" title="Coming soon!">Sign My Guestbook</a></li>
-          <li><a href="#" title="Coming soon!">My Favorite Links</a></li>
-          <li><a href="#" title="Coming soon!">Email Me</a></li>
-        </ul>
+        <form id="rsvpForm" action="https://formsubmit.co/danbelkind@gmail.com" method="POST">
+          <input type="hidden" name="_subject" value="New RSVP for Ryan's Beach Day!">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_captcha" value="false">
+          <input type="hidden" name="_next" id="rsvpNextField" value="https://ryanbeachday.com/thanks.html">
+          <input type="hidden" name="_autoresponse" id="autoresponseField" value="">
+          <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
 
-        <div class="marquee-wrap" aria-hidden="true">
-          <span class="marquee-track">~*~ THANKS FOR VISITING RYANBEACHDAY.COM ~*~ BOOKMARK THIS PAGE ~*~ COME BACK SOON ~*~</span>
+          <div class="field-row">
+            <label class="field-label">Will you be attending?</label>
+            <div class="toggle-row">
+              <label class="toggle-option">
+                <input type="radio" name="attending" value="Yes, I will be attending" required>
+                <span class="toggle-btn">Yes, I will be attending</span>
+              </label>
+              <label class="toggle-option">
+                <input type="radio" name="attending" value="No, sorry I will not be in attendance">
+                <span class="toggle-btn">No, sorry I will not be in attendance</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="inline-fields">
+              <div class="inline-field">
+                <label class="field-label" for="fullName">Your full name</label>
+                <input class="text-field" type="text" id="fullName" name="full_name" required>
+              </div>
+              <div class="inline-field">
+                <label class="field-label" for="rsvpEmail">Your email</label>
+                <input class="text-field" type="email" id="rsvpEmail" name="email" required>
+              </div>
+              <div class="inline-field">
+                <label class="field-label" for="rsvpPhone">Your phone number</label>
+                <input class="text-field" type="tel" id="rsvpPhone" name="phone" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label">Do you wish to bring a plus one?</label>
+            <div class="toggle-row">
+              <label class="toggle-option">
+                <input type="radio" name="wants_plus_one" value="Yes" required>
+                <span class="toggle-btn">Yes</span>
+              </label>
+              <label class="toggle-option">
+                <input type="radio" name="wants_plus_one" value="No" required>
+                <span class="toggle-btn">No</span>
+              </label>
+            </div>
+
+            <div class="plus-one-fields" id="plusOneFields" hidden>
+              <label class="field-label" for="plusOneName">Plus one's full name</label>
+              <input class="text-field" type="text" id="plusOneName" name="plus_one_name">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label" for="compliment">Say something nice about Ryan</label>
+            <textarea class="text-field" id="compliment" name="compliment" placeholder="Type a compliment here..." required></textarea>
+          </div>
+
+          <div class="submit-row">
+            <button type="submit">Submit RSVP</button>
+          </div>
+        </form>
+
+        <div class="album-link-row">
+          Want to see everyone's favorite Ryan pics?
+          <br>
+          <button type="button" id="viewAlbumBtn">View the Photo Album &raquo;</button>
         </div>
 
-        <div class="counter-box">
-          You are visitor number:
-          <span class="counter-digits" id="counter">000042</span>
+        <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+      </div>
+
+      <!-- ===== PHOTO ALBUM SCREEN ===== -->
+      <div class="screen text-screen" id="screenAlbum" hidden>
+
+        <h1 class="page-title">Ryan Mems Gallery</h1>
+        <p class="intro-line">Our favorite pics of the man of the hour.</p>
+        <hr class="rainbow-hr">
+
+        <div class="coming-soon">
+          &#128248; Please enjoy this glorious content as we all take a walk down budge memory lane.
+          Dig through that camera roll and submit some bangers and gems if you haven't already!
         </div>
 
-        <div class="webring">
-          <button disabled>&#8249; Prev</button>
-          <button disabled>WebRing</button>
-          <button disabled>Next &#8250;</button>
+        <input type="file" id="albumUploadFileInput" accept="image/*,video/*" style="display:none;">
+
+        <div class="photo-grid" id="photoGridAlbum"></div>
+
+        <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+      </div>
+
+      <!-- ===== COMING SOON / BEACH DAY PHOTOS SCREEN ===== -->
+      <div class="screen text-screen" id="screenComingSoon" hidden>
+
+        <div id="comingSoonBlock" hidden>
+          <h1 class="page-title">Beach Day Photos</h1>
+          <p class="intro-line">The shared album for everyone's photos and videos from the big day.</p>
+          <hr class="rainbow-hr">
+
+          <div class="construction">&#128679; UNDER CONSTRUCTION &#128679;</div>
+
+          <div class="construction-note">
+            This shared album for all of Ryan Beach Day's photos and videos is still under
+            construction &mdash; it'll go live on <strong>September 19th</strong> once the beach day
+            festivities kick off! Check back then to see (and add) everyone's favorite shots from
+            the big day.
+          </div>
+
+          <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+        </div>
+
+        <div id="liveGalleryBlock" hidden>
+          <h1 class="page-title">Beach Day Photos</h1>
+          <p class="intro-line">Everyone's favorite shots from Ryan's 25th nameday beach bash.</p>
+          <hr class="rainbow-hr">
+
+          <div class="coming-soon">
+            &#127958;&#65039; The beach day photos and videos live here now &mdash; enjoy, and keep
+            adding your own from the day!
+          </div>
+
+          <form id="mediaUploadFormBeachDay" action="https://formsubmit.co/danbelkind@gmail.com" method="POST" enctype="multipart/form-data" style="display:none;">
+            <input type="hidden" name="_subject" value="New beach day event photo/video submission">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="hidden" name="_template" value="table">
+            <input type="hidden" name="_next" value="https://ryanbeachday.com/index.html">
+            <input type="file" name="media" id="mediaFileInputBeachDay" accept="image/*,video/*" multiple>
+          </form>
+
+          <div class="photo-grid" id="photoGridBeachDay">
+            <div class="photo-slot upload-slot" data-upload="beachday" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>
+            <div class="photo-slot upload-slot" data-upload="beachday" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>
+            <div class="photo-slot upload-slot" data-upload="beachday" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>
+            <div class="photo-slot upload-slot" data-upload="beachday" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>
+            <div class="photo-slot upload-slot" data-upload="beachday" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>
+            <div class="photo-slot upload-slot" data-upload="beachday" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>
+          </div>
+
+          <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+        </div>
+
+      </div>
+
+      <!-- ===== MESSAGE BOARD SCREEN ===== -->
+      <div class="screen text-screen" id="screenBoard" hidden>
+
+        <h1 class="page-title">Message Board</h1>
+        <p class="intro-line">
+          Welcome to the message board! Pick a display name and get chatting! Please stick with the
+          same display name for all comments and posts. This page will be used for vibes and updates.
+        </p>
+        <hr class="rainbow-hr">
+
+        <div class="coming-soon" id="boardStatus">&#8987; Connecting to the message board...</div>
+
+        <div class="board-feed" id="boardFeed"></div>
+
+        <hr class="rainbow-hr">
+
+        <h2 style="font-family:'Times New Roman',Times,serif;font-size:16px;margin:18px 0 8px;">Post a Message</h2>
+
+        <form id="boardForm">
+          <div class="field-row">
+            <label class="field-label" for="boardName">Display name</label>
+            <input class="text-field" type="text" id="boardName" name="display_name" required>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label">Your profile picture</label>
+            <div class="avatar-preview">
+              <img id="avatarPreviewImg" src="" alt="" hidden>
+              <span id="avatarPreviewHint">Type a display name to see your Lego Star Wars avatar</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label" for="boardMessage">Your message</label>
+            <textarea class="text-field" id="boardMessage" name="message" placeholder="Say something..." required></textarea>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label" for="boardImage">Attach a photo/video (optional)</label>
+            <input class="text-field" type="file" id="boardImage" name="image_file" accept="image/*,video/*">
+            <label class="plain-checkbox">
+              <input type="checkbox" id="boardIncludeInAlbum">
+              Check this box if you would like this image/video from your post to also be included
+              in the photo album automatically
+            </label>
+          </div>
+
+          <div class="submit-row">
+            <button type="submit">Post Message</button>
+          </div>
+        </form>
+
+        <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+      </div>
+
+      <!-- ===== SUPPORT THIS WEBSITE SCREEN ===== -->
+      <div class="screen text-screen" id="screenSupport" hidden>
+
+        <h1 class="page-title">Support This Website</h1>
+        <p class="intro-line">Keeping ryanbeachday.com running for everyone.</p>
+        <hr class="rainbow-hr">
+
+        <div class="coming-soon">
+          ryanbeachday.com is a free resource for all Ryan supporters, and it is the generosity of
+          our patrons that helps bring this website to life while remaining ad free.
+        </div>
+
+        <p style="font-family:'Times New Roman',Times,serif;font-size:15px;line-height:1.6;">
+          If you wish to support, you can donate to <strong>@Daniel-Belkind</strong> on Venmo. All
+          donations will be used to help spoil Ryan rotten! &#129297;&#128536;
+        </p>
+
+        <div class="submit-row">
+          <button type="button" id="venmoBtn">&#128184; Venmo @Daniel-Belkind</button>
         </div>
 
         <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
@@ -390,13 +1035,112 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="leaveWarningOverlay">
+  <div class="window warning-window">
+    <div class="title-bar">
+      <div class="title-bar-text"><span>&#9888;&#65039;</span> Warning</div>
+      <div class="title-bar-controls">
+        <button aria-label="Close" id="leaveWarningClose"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="warning-body">
+        <div class="warning-icon">&#128721;</div>
+        <div>
+          <p style="margin-top:0;">Your RSVP hasn't been submitted yet!</p>
+          <p style="margin-bottom:0;">
+            If you're not able to attend, please still complete the form so we can get an
+            accurate headcount &mdash; or just text Dan directly.
+          </p>
+        </div>
+      </div>
+      <div class="warning-buttons">
+        <button type="button" id="leaveWarningStay">Stay on This Page</button>
+        <button type="button" id="leaveWarningGo">Leave Anyway</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="albumLightbox">
+  <div class="window lightbox-window">
+    <div class="title-bar">
+      <div class="title-bar-text"><span>&#128248;</span> Photo Album</div>
+      <div class="title-bar-controls">
+        <button aria-label="Close" id="lightboxClose"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="lightbox-media" id="lightboxMedia"></div>
+      <div class="lightbox-meta">
+        <img class="board-avatar" id="lightboxAvatar" src="" alt="">
+        <div>
+          <div class="board-author" id="lightboxAuthorName"></div>
+          <div class="board-post-text" id="lightboxMessage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="albumUploadModal">
+  <div class="window warning-window">
+    <div class="title-bar">
+      <div class="title-bar-text"><span>&#128248;</span> Add to Photo Album</div>
+      <div class="title-bar-controls">
+        <button aria-label="Close" id="albumUploadModalClose"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="field-row">
+        <label class="field-label" for="albumUploadName">Display name</label>
+        <input class="text-field" type="text" id="albumUploadName" required>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="albumUploadMessage">Message (optional)</label>
+        <textarea class="text-field" id="albumUploadMessage" placeholder="Say something..."></textarea>
+      </div>
+      <div class="submit-row">
+        <button type="button" id="albumUploadSubmitBtn">Upload</button>
+        <button type="button" id="albumUploadCancelBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  var browserWindowEl = document.getElementById('browserWindow');
+
+  var screens = {
+    home: document.getElementById('screenHome'),
+    rsvp: document.getElementById('screenRsvp'),
+    album: document.getElementById('screenAlbum'),
+    comingSoon: document.getElementById('screenComingSoon'),
+    board: document.getElementById('screenBoard'),
+    support: document.getElementById('screenSupport')
+  };
+  var currentScreen = 'home';
+  var latestPosts = [];
+  var JANGO_FETT_AVATAR = "https://images.steamusercontent.com/ugc/1826783377633780872/B9C816D42C3578E5555846F01357F4EE48ADADD1/";
+
+  function showScreenImmediate(target) {
+    Object.keys(screens).forEach(function (key) {
+      screens[key].hidden = key !== target;
+    });
+    currentScreen = target;
+  }
+
+  /* ================= HOME SCREEN: beach hero + pixel explosion intro ================= */
+
   var heroEl = document.getElementById('hero');
   var titleEl = document.getElementById('title');
   var subEl = document.getElementById('sub');
+  var introCopyEl = document.getElementById('introCopy');
+  var storyPanelEl = document.getElementById('storyPanel');
+  var rsvpBtn = document.getElementById('rsvpBtn');
   var bgCanvas = document.getElementById('bg');
   var bgCtx = bgCanvas.getContext('2d');
   var fxCanvas = document.getElementById('fx');
@@ -407,6 +1151,7 @@
   function sizeCanvases() {
     var w = heroEl.clientWidth;
     var h = heroEl.clientHeight;
+    if (!w || !h) return;
 
     bgCanvas.width = Math.ceil(w / PIXEL);
     bgCanvas.height = Math.ceil(h / PIXEL);
@@ -448,8 +1193,6 @@
       var dy = yy - sunCy;
       var halfW = Math.sqrt(Math.max(0, sunR * sunR - dy * dy));
       if (halfW <= 0) continue;
-      var rowT = (yy - (sunCy - sunR)) / (sunR * 2);
-      if (rowT > 0.42 && Math.floor(rowT * 16) % 3 === 0) continue;
       var vertT = Math.min(1, Math.max(0, (dy + sunR) / (sunR * 2)));
       ctx.fillStyle = mixColor(sunCore, sunEdge, vertT);
       ctx.fillRect(Math.round(sunCx - halfW), yy, Math.round(halfW * 2), 1);
@@ -521,7 +1264,9 @@
   }
 
   sizeCanvases();
-  window.addEventListener('resize', sizeCanvases);
+  window.addEventListener('resize', function () {
+    if (!screens.home.hidden) sizeCanvases();
+  });
 
   /* ---- pixel explosion: 13-frame flipbook (grow -> bloom -> fragment -> lingering smoke), with onion-skin trailing ---- */
 
@@ -664,6 +1409,17 @@
     subEl.classList.add('show');
   }
 
+  var introTimeouts = [];
+
+  function scheduleIntro(fn, delay) {
+    introTimeouts.push(setTimeout(fn, delay));
+  }
+
+  function clearIntroTimeouts() {
+    introTimeouts.forEach(function (id) { clearTimeout(id); });
+    introTimeouts = [];
+  }
+
   function playIntro() {
     var hr = heroEl.getBoundingClientRect();
     var cx = hr.width / 2;
@@ -679,24 +1435,24 @@
     var stagger = 55;
     var totalLetterTime = revealStart + letterEls.length * stagger;
 
-    setTimeout(function () {
+    scheduleIntro(function () {
       bgCanvas.classList.add('show');
     }, revealStart);
 
     letterEls.forEach(function (el, i) {
-      setTimeout(function () {
+      scheduleIntro(function () {
         el.classList.add('show');
       }, revealStart + i * stagger);
     });
 
-    setTimeout(function () {
-      heroEl.classList.add('shake');
+    scheduleIntro(function () {
+      browserWindowEl.classList.add('shake');
       spawnFireball(cx, cy, 2.2);
       subEl.classList.add('show');
     }, totalLetterTime + 150);
 
-    setTimeout(function () {
-      heroEl.classList.remove('shake');
+    scheduleIntro(function () {
+      browserWindowEl.classList.remove('shake');
     }, totalLetterTime + 600);
   }
 
@@ -708,14 +1464,807 @@
     playIntro();
   }
 
-  /* ---- fake visitor counter ---- */
+  var storyRevealed = false;
 
-  var counterEl = document.getElementById('counter');
+  function revealStory() {
+    if (storyRevealed || !subEl.classList.contains('show')) return;
+    storyRevealed = true;
+
+    if (!reduceMotion) {
+      var hr = heroEl.getBoundingClientRect();
+      spawnFireball(hr.width / 2, hr.height / 2, 3);
+    }
+
+    introCopyEl.classList.add('leaving');
+    scheduleIntro(function () {
+      introCopyEl.hidden = true;
+      storyPanelEl.hidden = false;
+      requestAnimationFrame(function () {
+        storyPanelEl.classList.add('show');
+      });
+    }, 450);
+  }
+
+  function resetToIntro() {
+    showScreenImmediate('home');
+    sizeCanvases();
+
+    clearIntroTimeouts();
+    storyRevealed = false;
+    explosions = [];
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    fxRunning = true;
+
+    storyPanelEl.classList.remove('show');
+    storyPanelEl.hidden = true;
+
+    introCopyEl.classList.remove('leaving');
+    introCopyEl.hidden = false;
+
+    bgCanvas.classList.remove('show');
+    letterEls.forEach(function (el) { el.classList.remove('show'); });
+    subEl.classList.remove('show');
+    browserWindowEl.classList.remove('shake');
+
+    if (reduceMotion) {
+      revealAll();
+    } else {
+      playIntro();
+    }
+  }
+
+  subEl.addEventListener('click', revealStory);
+
+  /* ================= RSVP SCREEN ================= */
+
+  var rsvpForm = document.getElementById('rsvpForm');
+  var rsvpNextField = document.getElementById('rsvpNextField');
+  var autoresponseField = document.getElementById('autoresponseField');
+  var plusOneFields = document.getElementById('plusOneFields');
+  var plusOneName = document.getElementById('plusOneName');
+
+  Array.prototype.slice.call(document.querySelectorAll('input[name="wants_plus_one"]')).forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      var wantsPlusOne = radio.value === 'Yes' && radio.checked;
+      plusOneFields.hidden = !wantsPlusOne;
+      plusOneName.required = wantsPlusOne;
+    });
+  });
+
+  function buildNewsletterHtml(heading, bodyHtml) {
+    return '' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#c0c0c0;padding:24px 12px;font-family:Tahoma,Geneva,sans-serif;">' +
+      '<tr><td align="center">' +
+      '<table width="480" cellpadding="0" cellspacing="0" style="background:#c0c0c0;border:2px solid #808080;">' +
+      '<tr><td style="background:#000080;color:#fff;font-weight:bold;font-size:13px;padding:6px 10px;font-family:Tahoma,Geneva,sans-serif;">' +
+      '&#127760; Ryan Beach Day Website' +
+      '</td></tr>' +
+      '<tr><td style="background:#ffffff;padding:22px;font-family:\'Times New Roman\',Times,serif;color:#000000;">' +
+      '<h1 style="font-size:20px;margin:0 0 8px;font-family:\'Times New Roman\',Times,serif;">' + heading + '</h1>' +
+      '<div style="height:4px;background:linear-gradient(90deg,red,orange,yellow,green,blue,indigo,violet);margin:0 0 16px;font-size:0;line-height:0;">&nbsp;</div>' +
+      bodyHtml +
+      '<table cellpadding="10" cellspacing="0" style="background:#ffe600;border:1px solid #808080;margin:18px 0;width:100%;">' +
+      '<tr><td style="font-size:13px;font-family:\'Times New Roman\',Times,serif;text-align:center;">' +
+      '&#128197; <b>Saturday, September 19th</b> &middot; &#128337; <b>Time TBD</b> &middot; &#128205; <b>Will Rogers Beach</b>' +
+      '</td></tr>' +
+      '</table>' +
+      '<p style="font-size:12px;color:#333333;text-align:center;font-family:\'Times New Roman\',Times,serif;">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>' +
+      '</td></tr>' +
+      '</table>' +
+      '</td></tr>' +
+      '</table>';
+  }
+
+  var AUTORESPONSE_YES = buildNewsletterHtml(
+    '&#127881; RSVP Received!',
+    '<p style="font-size:14px;line-height:1.6;">Thanks for RSVPing to Ryan\'s Beach Day! We can\'t wait ' +
+    "to see you there. We'll send more details as the date gets closer.</p>"
+  );
+
+  var AUTORESPONSE_NO = buildNewsletterHtml(
+    "&#128557; You'll Be Missed!",
+    "<p style=\"font-size:14px;line-height:1.6;\">Thanks for letting us know. You'll be dearly missed at " +
+    "Ryan's Beach Day! Just in case anything changes, here's the info &mdash; please let Dan know if " +
+    'your plans change.</p>'
+  );
+
+  var formSubmitted = false;
+  rsvpForm.addEventListener('submit', function () {
+    formSubmitted = true;
+    var attending = document.querySelector('input[name="attending"]:checked');
+    var isYes = !!attending && attending.value.indexOf('Yes') === 0;
+    autoresponseField.value = isYes ? AUTORESPONSE_YES : AUTORESPONSE_NO;
+    rsvpNextField.value = 'https://ryanbeachday.com/thanks.html?attending=' + (isYes ? 'yes' : 'no');
+  });
+
+  function formHasProgress() {
+    var elements = rsvpForm.elements;
+    for (var i = 0; i < elements.length; i++) {
+      var el = elements[i];
+      if (!el.name || el.name === '_honey' || el.type === 'hidden' || el.type === 'submit') continue;
+      if (el.type === 'radio' || el.type === 'checkbox') {
+        if (el.checked) return true;
+      } else if (el.type === 'file') {
+        if (el.files && el.files.length > 0) return true;
+      } else if (el.value && el.value.trim() !== '') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if (currentScreen === 'rsvp' && !formSubmitted && formHasProgress()) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  var leaveOverlay = document.getElementById('leaveWarningOverlay');
+  var pendingAction = null;
+
+  function showLeaveWarning(actionFn) {
+    pendingAction = actionFn;
+    leaveOverlay.classList.add('show');
+  }
+
+  function hideLeaveWarning() {
+    leaveOverlay.classList.remove('show');
+    pendingAction = null;
+  }
+
+  document.getElementById('leaveWarningStay').addEventListener('click', hideLeaveWarning);
+  document.getElementById('leaveWarningClose').addEventListener('click', hideLeaveWarning);
+  document.getElementById('leaveWarningGo').addEventListener('click', function () {
+    var fn = pendingAction;
+    hideLeaveWarning();
+    if (fn) fn();
+  });
+
+  /* ================= PHOTO ALBUM + BEACH DAY GALLERY SCREENS ================= */
+
+  var albumUploadFileInput = document.getElementById('albumUploadFileInput');
+  var mediaFileInputBeachDay = document.getElementById('mediaFileInputBeachDay');
+  var mediaUploadFormBeachDay = document.getElementById('mediaUploadFormBeachDay');
+
+  mediaFileInputBeachDay.addEventListener('change', function () {
+    if (mediaFileInputBeachDay.files.length > 0) mediaUploadFormBeachDay.submit();
+  });
+
+  var uploadTargets = { album: albumUploadFileInput, beachday: mediaFileInputBeachDay };
+
+  var albumUploadModal = document.getElementById('albumUploadModal');
+  var albumUploadName = document.getElementById('albumUploadName');
+  var albumUploadMessage = document.getElementById('albumUploadMessage');
+  var albumUploadSubmitBtn = document.getElementById('albumUploadSubmitBtn');
+  var pendingAlbumFile = null;
+
+  function openAlbumUploadModal() {
+    albumUploadName.value = '';
+    albumUploadMessage.value = '';
+    albumUploadSubmitBtn.disabled = false;
+    albumUploadSubmitBtn.textContent = 'Upload';
+    albumUploadModal.classList.add('show');
+  }
+
+  function closeAlbumUploadModal() {
+    albumUploadModal.classList.remove('show');
+    pendingAlbumFile = null;
+    albumUploadFileInput.value = '';
+  }
+
+  albumUploadFileInput.addEventListener('change', function () {
+    if (albumUploadFileInput.files.length > 0) {
+      pendingAlbumFile = albumUploadFileInput.files[0];
+      openAlbumUploadModal();
+    }
+  });
+
+  document.getElementById('albumUploadModalClose').addEventListener('click', closeAlbumUploadModal);
+  document.getElementById('albumUploadCancelBtn').addEventListener('click', closeAlbumUploadModal);
+
+  albumUploadSubmitBtn.addEventListener('click', function () {
+    var name = albumUploadName.value.trim();
+    if (!name || !pendingAlbumFile) return;
+    var message = albumUploadMessage.value.trim();
+    var file = pendingAlbumFile;
+    albumUploadSubmitBtn.disabled = true;
+    albumUploadSubmitBtn.textContent = 'Uploading...';
+    uploadMediaFile(file).then(function (url) {
+      return createPost(name, message, url, '', true);
+    }).then(function () {
+      closeAlbumUploadModal();
+    }).catch(function () {
+      albumUploadSubmitBtn.disabled = false;
+      albumUploadSubmitBtn.textContent = 'Upload';
+    });
+  });
+
+  function wireUploadSlots(container) {
+    Array.prototype.slice.call(container.querySelectorAll('.upload-slot')).forEach(function (slot) {
+      var input = uploadTargets[slot.getAttribute('data-upload')];
+      slot.addEventListener('click', function () { input.click(); });
+      slot.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          input.click();
+        }
+      });
+    });
+  }
+
+  wireUploadSlots(document.getElementById('screenComingSoon'));
+
+  /* ---- Ryan Mems Gallery: static curated photos + live message-board submissions ---- */
+
+  var ALBUM_PHOTOS = [];
+
+  function isVideoUrl(url) {
+    return /\.(mp4|mov|webm|m4v|ogg)(\?|$)/i.test(url);
+  }
+
+  var photoGridAlbumEl = document.getElementById('photoGridAlbum');
+  var albumLightboxItems = [];
+
+  function renderAlbumGrid() {
+    var liveItems = latestPosts.filter(function (p) { return p.includeInAlbum && p.imageUrl; }).map(function (p) {
+      return {
+        url: p.imageUrl,
+        type: isVideoUrl(p.imageUrl) ? 'video' : 'image',
+        author: p.author,
+        avatarUrl: p.avatarUrl,
+        message: p.text
+      };
+    });
+
+    albumLightboxItems = ALBUM_PHOTOS.concat(liveItems);
+
+    var html = albumLightboxItems.map(function (item, idx) {
+      var mediaHtml = item.type === 'video'
+        ? '<video src="' + escapeHtml(item.url) + '" muted preload="metadata"></video>'
+        : '<img src="' + escapeHtml(item.url) + '" alt="">';
+      return '<div class="photo-slot filled-slot" data-album-index="' + idx + '" tabindex="0" role="button">' + mediaHtml + '</div>';
+    }).join('');
+
+    for (var i = 0; i < 6; i++) {
+      html += '<div class="photo-slot upload-slot" data-upload="album" tabindex="0" role="button">coming soon...<br>click here to upload photos and videos</div>';
+    }
+
+    photoGridAlbumEl.innerHTML = html;
+
+    Array.prototype.slice.call(photoGridAlbumEl.querySelectorAll('.filled-slot')).forEach(function (slot) {
+      var openThisItem = function () {
+        openAlbumLightbox(albumLightboxItems[parseInt(slot.getAttribute('data-album-index'), 10)]);
+      };
+      slot.addEventListener('click', openThisItem);
+      slot.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openThisItem();
+        }
+      });
+    });
+
+    wireUploadSlots(photoGridAlbumEl);
+  }
+
+  renderAlbumGrid();
+
+  var albumLightboxEl = document.getElementById('albumLightbox');
+  var lightboxMediaEl = document.getElementById('lightboxMedia');
+  var lightboxAvatarEl = document.getElementById('lightboxAvatar');
+  var lightboxAuthorNameEl = document.getElementById('lightboxAuthorName');
+  var lightboxMessageEl = document.getElementById('lightboxMessage');
+
+  function openAlbumLightbox(item) {
+    lightboxMediaEl.innerHTML = item.type === 'video'
+      ? '<video src="' + escapeHtml(item.url) + '" controls autoplay></video>'
+      : '<img src="' + escapeHtml(item.url) + '" alt="">';
+    lightboxAvatarEl.src = item.avatarUrl;
+    lightboxAuthorNameEl.textContent = item.author;
+    lightboxMessageEl.textContent = item.message;
+    albumLightboxEl.classList.add('show');
+  }
+
+  function closeAlbumLightbox() {
+    albumLightboxEl.classList.remove('show');
+    lightboxMediaEl.innerHTML = '';
+  }
+
+  document.getElementById('lightboxClose').addEventListener('click', closeAlbumLightbox);
+  albumLightboxEl.addEventListener('click', function (e) {
+    if (e.target === albumLightboxEl) closeAlbumLightbox();
+  });
+
+  var EVENT_DATE = new Date('2026-09-19T00:00:00');
+  var isBeachDayLive = new Date() >= EVENT_DATE;
+  document.getElementById('comingSoonBlock').hidden = isBeachDayLive;
+  document.getElementById('liveGalleryBlock').hidden = !isBeachDayLive;
+
+  if (isBeachDayLive) {
+    var comingSoonNavBtn = document.getElementById('comingSoonNavBtn');
+    var boardNavBtnForOrder = document.getElementById('boardNavBtn');
+    comingSoonNavBtn.textContent = 'Beach Photos';
+    boardNavBtnForOrder.parentNode.insertBefore(comingSoonNavBtn, boardNavBtnForOrder);
+  }
+
+  /* ================= MESSAGE BOARD ================= */
+
+  var LEGO_AVATARS = [
+    "https://images.steamusercontent.com/ugc/1826783377633773901/97FF9B711CC1E31DC4161FDF0869E74FD29DEA12/?imw=128&imh=128&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true",
+    "https://images.steamusercontent.com/ugc/1826783377633780368/5B36A2E26419F558E00889E124B611658B75DCA8/",
+    "https://images.steamusercontent.com/ugc/1826783377633780374/E31C80CB04B4C466D056C77A319576783BC2CDD0/",
+    "https://images.steamusercontent.com/ugc/1826783377633780381/9A2D820B3EB0FF5FA9E7B53E6ABBE066E71F700A/",
+    "https://images.steamusercontent.com/ugc/1826783377633780386/2F2FB661EBD86B64148EB59BE16C04532CCA76D2/",
+    "https://images.steamusercontent.com/ugc/1826783377633780393/DACE55DA28DBCDE0F5DEA2234C7BEC3D88ABA526/",
+    "https://images.steamusercontent.com/ugc/1826783377633780401/25BB5866ACA3A96849ACB8898786CEF437A984F6/",
+    "https://images.steamusercontent.com/ugc/1826783377633780406/5EF5307CEFE5DB92D20AB4F69FC11EE37C1EEB33/",
+    "https://images.steamusercontent.com/ugc/1826783377633780411/2C2E4C95EA47631ECEE5570DDAC846B045B55C49/",
+    "https://images.steamusercontent.com/ugc/1826783377633780417/FD3A412830762DD2800C7960D7B5870AA745F3CD/",
+    "https://images.steamusercontent.com/ugc/1826783377633780422/E545C1BD35187B40DE8C130B2BAB835258F7E538/",
+    "https://images.steamusercontent.com/ugc/1826783377633780427/1AB4C0AEF281E159D3FFAFAAF12438BE08421643/",
+    "https://images.steamusercontent.com/ugc/1826783377633780434/07D2E818F7D1AD02D49115094FFD3CC0B2FD39A4/",
+    "https://images.steamusercontent.com/ugc/1826783377633780439/D6CC77C651CB1A1AE1A7FE8406880F03E81ADE20/",
+    "https://images.steamusercontent.com/ugc/1826783377633780444/3C2BE6C66DD0A6921FA99EB7C9EDCB3561FF6CEB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780449/B5C740AA088CAB59367DC840CCE3430A8A2F0B5C/",
+    "https://images.steamusercontent.com/ugc/1826783377633780454/9B1D7E044DFED1FD05CC2A6412A34C1AA71F2027/",
+    "https://images.steamusercontent.com/ugc/1826783377633780460/D9BBB4656C92DB817DA1493F1E3F93A58962D601/",
+    "https://images.steamusercontent.com/ugc/1826783377633780465/2BD0E0ECBC17F282B56DCAFA5A31B15089BEBB31/",
+    "https://images.steamusercontent.com/ugc/1826783377633780468/829D7CBAC4BCC890838459FDDA08CD2DE6BC7333/",
+    "https://images.steamusercontent.com/ugc/1826783377633780473/8BBFBBCBE97D1A5F1B43B4F130F47B9FBBA2467C/",
+    "https://images.steamusercontent.com/ugc/1826783377633780476/A09A1138F42974B867E2D28C33E0A41452E7CDDF/",
+    "https://images.steamusercontent.com/ugc/1826783377633780484/012411805A8BFEB211D01A48D853971F8962FDF2/",
+    "https://images.steamusercontent.com/ugc/1826783377633780490/B1EFB9E6F6AFB5051BDB20FA80F92CB1CD1A6020/",
+    "https://images.steamusercontent.com/ugc/1826783377633780493/3AA8F88478DF20306933CB6941893B2F8CD7CB0F/",
+    "https://images.steamusercontent.com/ugc/1826783377633780499/B6FB1D11380D182B9139F357BED6C24EAFDB379E/",
+    "https://images.steamusercontent.com/ugc/1826783377633780506/A681758330D867FC220EA45F0E1AF90D27572EEB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780511/F019FEE791A6294F82655687DE7FEC483DA72462/",
+    "https://images.steamusercontent.com/ugc/1826783377633780516/B55937A03FF5E025E1FF3D397CAB038BCA58EBFB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780521/CDC282E84A7697EE3CE0136BD4DF4B86D6E2F719/",
+    "https://images.steamusercontent.com/ugc/1826783377633780527/1E7288BD40A022B7449A0DCF57BBAE69EAEF6C4F/",
+    "https://images.steamusercontent.com/ugc/1826783377633780532/068B2849C1326691720032A38DF2DD3BA101DCD8/",
+    "https://images.steamusercontent.com/ugc/1826783377633780536/1D3EB5171D6121620AB6FEA08E7598C326E1EF09/",
+    "https://images.steamusercontent.com/ugc/1826783377633780541/26DDFAD53DB13D8C19095E629FA12CE4B3FD19B8/",
+    "https://images.steamusercontent.com/ugc/1826783377633780546/46902691EC134E13CC1842EE1654B1FC921DF64C/",
+    "https://images.steamusercontent.com/ugc/1826783377633780551/7FCA602AE94F4A842139A9B9D6DE13BFDA973107/",
+    "https://images.steamusercontent.com/ugc/1826783377633780555/5447A87C1A47D9A7B095BD95FD73E4D9BC1E17BE/",
+    "https://images.steamusercontent.com/ugc/1826783377633780558/53883BC42C0AAF992F22B164DE437C0E57030D2D/",
+    "https://images.steamusercontent.com/ugc/1826783377633780562/562449ACF1F98B7895EDA82935FE78A8030FCA50/",
+    "https://images.steamusercontent.com/ugc/1826783377633780567/550E65C14FC870104904E91EF9CE1782F75B9F89/",
+    "https://images.steamusercontent.com/ugc/1826783377633780570/5E4C4E01C0A087146E653F805A98F4F8FC7D6B81/",
+    "https://images.steamusercontent.com/ugc/1826783377633780575/CE848A46216D382D7F8DBC0162097729BD670D9B/",
+    "https://images.steamusercontent.com/ugc/1826783377633780578/AAF82E0F7E1E03D99BB165056CE8DC66A1F8680E/",
+    "https://images.steamusercontent.com/ugc/1826783377633780583/0642F9513DC1E9F545EFFF3ADB6D896D38872F50/",
+    "https://images.steamusercontent.com/ugc/1826783377633780598/6319E2D9F415A308133839765D372E1C254BE46E/",
+    "https://images.steamusercontent.com/ugc/1826783377633780601/7331DD00FEB552D71635B38E4699B69ACD561C5D/",
+    "https://images.steamusercontent.com/ugc/1826783377633780604/142947F757260675F65FDE4CF6A09D278465CEB3/",
+    "https://images.steamusercontent.com/ugc/1826783377633780609/F200F06C388E77EA3F192E5497A7224664137466/",
+    "https://images.steamusercontent.com/ugc/1826783377633780615/493C51EBE49CE995C6ED26E85FCEB156B16ECA28/",
+    "https://images.steamusercontent.com/ugc/1826783377633780620/DA4F32A4D4581F496364EA86C3E53C4DE7182A9E/",
+    "https://images.steamusercontent.com/ugc/1826783377633780625/DFE99D70D5C35E34DB992B560D17DF24A812DEEA/",
+    "https://images.steamusercontent.com/ugc/1826783377633780631/C5A09A0D1BA20DD820FB25F1B082FAB1851FA643/",
+    "https://images.steamusercontent.com/ugc/1826783377633780636/92D7D8308DA119A37954A81FBBA6992AE31539C7/",
+    "https://images.steamusercontent.com/ugc/1826783377633780642/C936A64C7A0C67DF4DF21E025EFAF7C8D874011A/",
+    "https://images.steamusercontent.com/ugc/1826783377633780648/B68A1619302EB5DEE8815052BF5DF1B61A50C74B/",
+    "https://images.steamusercontent.com/ugc/1826783377633780653/EB0D5FC71C54977B109B8BA8EDF76625C6209B58/",
+    "https://images.steamusercontent.com/ugc/1826783377633780656/4C35A4FB49536524415EEB424C99CFD03BA4B9D2/",
+    "https://images.steamusercontent.com/ugc/1826783377633780661/7F1E3B3EA4B9D71AFB10A51BB0BE28AF6F73ADA1/",
+    "https://images.steamusercontent.com/ugc/1826783377633780664/F0348D2FB1EC02742F5325590FB4A7E781CB6BFB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780669/40AF412310390C35D974B702D32A249C43DD6FAD/",
+    "https://images.steamusercontent.com/ugc/1826783377633780675/1576804F11EEDB4FF15D86740CBFE92430A2DB9D/",
+    "https://images.steamusercontent.com/ugc/1826783377633780678/C9C5DE9D20FEB3A881DED4A4E825249543DEBC10/",
+    "https://images.steamusercontent.com/ugc/1826783377633780682/7AC0154919C63A44F6D767E826929308E55954AE/",
+    "https://images.steamusercontent.com/ugc/1826783377633780689/E64CC69793E77EC9C7F172329346A6A88797DA3D/",
+    "https://images.steamusercontent.com/ugc/1826783377633780692/CE070FEC6255F045C74EC9F3C8E3B71CA0A72200/",
+    "https://images.steamusercontent.com/ugc/1826783377633780697/C48B12FEA9B3B3F8F6004EB7D20E5E154D61EEAA/",
+    "https://images.steamusercontent.com/ugc/1826783377633780700/E25C4213FCBAA92ED97D24A4A1D87F97354A095F/",
+    "https://images.steamusercontent.com/ugc/1826783377633780706/52D73A22ED3604FF2F3E552013C235795285DEE5/",
+    "https://images.steamusercontent.com/ugc/1826783377633780709/67EAC6E08F362096E190AD51C16F1A5B9774711D/",
+    "https://images.steamusercontent.com/ugc/1826783377633780716/393CDAEE296284749DA4125A29E7D8BB67F43D36/",
+    "https://images.steamusercontent.com/ugc/1826783377633780721/0BCF24BC456DD7C422D134F1E15B2CF61EDE7055/",
+    "https://images.steamusercontent.com/ugc/1826783377633780726/D2B07BCD506BB527DD5D36C59571D930DA3062ED/",
+    "https://images.steamusercontent.com/ugc/1826783377633780731/B73008AE34981B10A3A59166E851308CC67A5ED5/",
+    "https://images.steamusercontent.com/ugc/1826783377633780737/0913E1301D94E31A64AEEB00D957B13E07471771/",
+    "https://images.steamusercontent.com/ugc/1826783377633780742/C26F5913E3F89DD14B93811D0183CA8294EFDDE9/",
+    "https://images.steamusercontent.com/ugc/1826783377633780746/4B5C6F4C974076373751107B9373C62D77EAFC12/",
+    "https://images.steamusercontent.com/ugc/1826783377633780751/020D0249DDBB1EA4DB43673A2D72AE1C5B1A889E/",
+    "https://images.steamusercontent.com/ugc/1826783377633780754/481EB4E2E1FBA5ED6D0232A50D7DEF4B101BCE87/",
+    "https://images.steamusercontent.com/ugc/1826783377633780759/EBA73D9188B7C001D177B22F15563832861B41F1/",
+    "https://images.steamusercontent.com/ugc/1826783377633780764/CA93441612B5FD81301B33E49C807D5FDDC25FBB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780770/F5FEE9BFA36D20AC66B2FD1BC4EC6C443A0FEFB9/",
+    "https://images.steamusercontent.com/ugc/1826783377633780775/4A1FB05F2AF9C6D3420BE0C4484E67F54FC54A16/",
+    "https://images.steamusercontent.com/ugc/1826783377633780784/6AE774CE1A8570F5CC73202764B4957192C8E766/",
+    "https://images.steamusercontent.com/ugc/1826783377633780789/34FCABF3ECA96FB036AEE9F605AA7B437FF51FDD/",
+    "https://images.steamusercontent.com/ugc/1826783377633780794/AF8C5815BE0ED95CFECEB5700D2181AEBA75B432/",
+    "https://images.steamusercontent.com/ugc/1826783377633780801/218C63DA54F38D858806684DAA654A14AE517E53/",
+    "https://images.steamusercontent.com/ugc/1826783377633780806/63EE01BBBA993ADF3E83EADE923011AF06BADE4A/",
+    "https://images.steamusercontent.com/ugc/1826783377633780812/899839B88D25E3251D78B2681428D177C9CEFF71/",
+    "https://images.steamusercontent.com/ugc/1826783377633780819/3202DED5229426434A7ED598112600A730F0AA99/",
+    "https://images.steamusercontent.com/ugc/1826783377633780824/402542D9A127F4AA7669C52B4583C1334F6F025D/",
+    "https://images.steamusercontent.com/ugc/1826783377633780830/7FAFE52A11F6A61587E010F13F1C4D67ECD9ECD4/",
+    "https://images.steamusercontent.com/ugc/1826783377633780835/49F003DDB98A13295807322F598C5AD0C6B05650/",
+    "https://images.steamusercontent.com/ugc/1826783377633780848/5A348895A28856B93B0AC5F26A14FD2B6C5EA5DF/",
+    "https://images.steamusercontent.com/ugc/1826783377633780851/DCF979FF7159393D1C2B2049FB7A30A07D9755E6/",
+    "https://images.steamusercontent.com/ugc/1826783377633780860/291EC84C0CA6538199C006749DE52ABA668D8736/",
+    "https://images.steamusercontent.com/ugc/1826783377633780872/B9C816D42C3578E5555846F01357F4EE48ADADD1/",
+    "https://images.steamusercontent.com/ugc/1826783377633780878/75FDB68511ED877219794DA42B5C607DCC6B8E21/",
+    "https://images.steamusercontent.com/ugc/1826783377633780883/55329434D3638AB8AC9C1B7DFEAFD7A0E1FDF3F7/",
+    "https://images.steamusercontent.com/ugc/1826783377633780888/DEB9115D9EC536BC811E3584737ACE60BA57C947/",
+    "https://images.steamusercontent.com/ugc/1826783377633780893/7B7C1DF3DCD5F936DA935488D41339E8C27E76BB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780900/847AB1B8C9105F9EDBB35EA5D9BD7EC15896FA4C/",
+    "https://images.steamusercontent.com/ugc/1826783377633780908/AF862FFA7781F502F6C49BDC0443FE86F089DA64/",
+    "https://images.steamusercontent.com/ugc/1826783377633780912/2A84CB09E27BCA3E6D791966685F0AE2F2C96B29/",
+    "https://images.steamusercontent.com/ugc/1826783377633780915/6548F8E7B406CF50355C0B150663536ABA998689/",
+    "https://images.steamusercontent.com/ugc/1826783377633780921/BB2CDD976ACC922ABE8B55670A442A6045746EA2/",
+    "https://images.steamusercontent.com/ugc/1826783377633780926/DE29671ABBAABA2340A15A9D531045A811249983/",
+    "https://images.steamusercontent.com/ugc/1826783377633780932/CF390B11FF8AE1F23424EC90EE4844B538067701/",
+    "https://images.steamusercontent.com/ugc/1826783377633780940/B11AC2A2C0B20E99CD78F37648398C6E71470980/",
+    "https://images.steamusercontent.com/ugc/1826783377633780945/57250DD0BDE1E2836B1CD017A4A87A5C81A6E52E/",
+    "https://images.steamusercontent.com/ugc/1826783377633780948/29710EE1863CE86C9CD006BF2E4CF30C4C3F3DCB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780956/9788C54569411B6AFB2240689F3600E30179DF9A/",
+    "https://images.steamusercontent.com/ugc/1826783377633780961/62FAC728669B3E1CF0105D498AEE5DF7C3BBC129/",
+    "https://images.steamusercontent.com/ugc/1826783377633780964/8D8F43FBEE087C07808F9F4D83C66F7A307E82FF/",
+    "https://images.steamusercontent.com/ugc/1826783377633780970/043A5AC803F5511944201FDC18F3C88C31080CAB/",
+    "https://images.steamusercontent.com/ugc/1826783377633780978/D99DDC9A9D0F906DF56BD2AEDF398FEF604AFEE7/",
+    "https://images.steamusercontent.com/ugc/1826783377633780983/3C2ED4E7E56ACC05831FAB3F7680BEF212816C7B/",
+    "https://images.steamusercontent.com/ugc/1826783377633780988/76B8FD7C2E2BC915F766C848726C7ACF9C24EDFD/",
+    "https://images.steamusercontent.com/ugc/1826783377633780991/A92EC54F6B1B0DEE544A9201807E1F6B5CB77466/",
+    "https://images.steamusercontent.com/ugc/1826783377633781000/1ECF890D9FADFAD71145AFAA0D26B8F043CF775A/",
+    "https://images.steamusercontent.com/ugc/1826783377633781003/4C1478D045DB351271E00282974A457D7BB817C5/",
+    "https://images.steamusercontent.com/ugc/1826783377633781006/0FAEF9B1C64B2E8BC8ABB89BD4AF3996BBFC13EE/",
+    "https://images.steamusercontent.com/ugc/1826783377633781011/7655C199C53660200FD453DBF24FE10AEC052F15/",
+    "https://images.steamusercontent.com/ugc/1826783377633781014/CB920C3EBEA2A5B73B1BDE0CD33425C5FDA2D890/",
+    "https://images.steamusercontent.com/ugc/1826783377633781019/BEA37659338BACFF9174C1F94BF61323189896D7/",
+    "https://images.steamusercontent.com/ugc/1826783377633781024/F4E52E6FDF42EDFECB3DF39917718941F1F048AC/",
+    "https://images.steamusercontent.com/ugc/1826783377633781031/3AF0E20C8625360C1359C787D0B2FB5EEC74DBBF/",
+    "https://images.steamusercontent.com/ugc/1826783377633781034/CFFAE6A26FD609F6B78A612A0235AACF7ADA0F7F/"
+  ];
+
+  function hashString(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+  }
+
+  function normalizeAuthorKey(name) {
+    return name.trim().toLowerCase();
+  }
+
+  function slugifyAuthorKey(name) {
+    var slug = normalizeAuthorKey(name).replace(/[^a-z0-9_.~:@+-]+/g, '-').slice(0, 60);
+    return slug || 'anon';
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+
+  function formatBoardTimestamp(ms) {
+    var d = new Date(ms);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyDakj9z4QY1hsaMEbD4gY-dQBhkJdgDE2g",
+    authDomain: "ryanbeachday.firebaseapp.com",
+    projectId: "ryanbeachday",
+    storageBucket: "ryanbeachday.firebasestorage.app",
+    messagingSenderId: "808401623236",
+    appId: "1:808401623236:web:43154a51bf57ca7ac11191"
+  };
+
+  var boardStatusEl = document.getElementById('boardStatus');
+  var boardFeedEl = document.getElementById('boardFeed');
+  var fsDb = null;
+  var fsStorage = null;
+  var openReplyFormFor = null;
+
   try {
-    var n = parseInt(localStorage.getItem('rbd_hits') || '41', 10) + 1;
-    localStorage.setItem('rbd_hits', String(n));
-    counterEl.textContent = String(n).padStart(6, '0');
-  } catch (e) {}
+    firebase.initializeApp(firebaseConfig);
+    fsDb = firebase.firestore();
+    fsStorage = firebase.storage();
+  } catch (e) {
+    boardStatusEl.textContent = "Couldn't connect to the message board right now. Try refreshing the page.";
+  }
+
+  function uploadMediaFile(file) {
+    var path = 'board-uploads/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '_' + file.name;
+    var ref = fsStorage.ref(path);
+    return ref.put(file).then(function (snapshot) {
+      return snapshot.ref.getDownloadURL();
+    });
+  }
+
+  function pickAvatarForName(name, usedSet) {
+    var idx = hashString(normalizeAuthorKey(name)) % LEGO_AVATARS.length;
+    var attempts = 0;
+    while (usedSet[LEGO_AVATARS[idx]] && attempts < LEGO_AVATARS.length) {
+      idx = (idx + 1) % LEGO_AVATARS.length;
+      attempts++;
+    }
+    return LEGO_AVATARS[idx];
+  }
+
+  function getUsedAvatars() {
+    return fsDb.collection('authors').get().then(function (snap) {
+      var used = {};
+      snap.forEach(function (doc) {
+        var data = doc.data();
+        if (data.avatarUrl) used[data.avatarUrl] = true;
+      });
+      return used;
+    });
+  }
+
+  function getOrCreateAuthor(displayName) {
+    var ref = fsDb.collection('authors').doc(slugifyAuthorKey(displayName));
+    return ref.get().then(function (snap) {
+      if (snap.exists) return snap.data();
+      return getUsedAvatars().then(function (used) {
+        var avatarUrl = pickAvatarForName(displayName, used);
+        var data = { displayName: displayName, avatarUrl: avatarUrl, createdAt: Date.now() };
+        return ref.set(data).then(function () { return data; });
+      });
+    });
+  }
+
+  function createPost(authorName, text, imageUrl, parentId, includeInAlbum) {
+    return getOrCreateAuthor(authorName).then(function (author) {
+      return fsDb.collection('posts').add({
+        author: author.displayName,
+        avatarUrl: author.avatarUrl,
+        text: text,
+        imageUrl: imageUrl || '',
+        parentId: parentId || '',
+        includeInAlbum: !!includeInAlbum,
+        createdAt: Date.now()
+      });
+    });
+  }
+
+  function seedWelcomePost() {
+    var authorRef = fsDb.collection('authors').doc(slugifyAuthorKey('Dano'));
+    authorRef.set({ displayName: 'Dano', avatarUrl: JANGO_FETT_AVATAR, createdAt: Date.now() }).then(function () {
+      return fsDb.collection('posts').add({
+        author: 'Dano',
+        avatarUrl: JANGO_FETT_AVATAR,
+        text: "Let's get this message board popping. I got no official beach day updates yet, but I'm " +
+          "thinking about that time Ryan got a hot dog at the movies. #Glizzy4ChristopherNolan",
+        imageUrl: 'assets/board/hotdog-movies.jpg',
+        parentId: '',
+        includeInAlbum: true,
+        createdAt: Date.now()
+      });
+    });
+  }
+
+  function renderBoard(posts) {
+    var byParent = {};
+    posts.forEach(function (m) {
+      var key = m.parentId || '__root__';
+      if (!byParent[key]) byParent[key] = [];
+      byParent[key].push(m);
+    });
+
+    function replyFormHtml(postId) {
+      if (openReplyFormFor !== postId) return '';
+      return '' +
+        '<div class="board-reply-form">' +
+        '<div class="field-row">' +
+        '<label class="field-label">Display name</label>' +
+        '<input class="text-field reply-name" type="text" required>' +
+        '</div>' +
+        '<div class="field-row">' +
+        '<label class="field-label">Reply</label>' +
+        '<textarea class="text-field reply-text" placeholder="Say something..." required></textarea>' +
+        '</div>' +
+        '<div class="field-row">' +
+        '<label class="field-label">Attach a photo/video (optional)</label>' +
+        '<input class="text-field reply-image" type="file" accept="image/*,video/*">' +
+        '<label class="plain-checkbox">' +
+        '<input type="checkbox" class="reply-include-album">' +
+        'Check this box if you would like this image/video from your post to also be included in ' +
+        'the photo album automatically' +
+        '</label>' +
+        '</div>' +
+        '<div class="submit-row">' +
+        '<button type="button" class="reply-submit" data-parent="' + escapeHtml(postId) + '">Post Reply</button>' +
+        '<button type="button" class="reply-cancel">Cancel</button>' +
+        '</div>' +
+        '</div>';
+    }
+
+    function renderList(parentKey, depth) {
+      var list = byParent[parentKey];
+      if (!list) return '';
+      return list.map(function (m) {
+        var html = '<div class="board-post" style="margin-left:' + (depth * 28) + 'px;">' +
+          '<div class="board-post-header">' +
+          '<img class="board-avatar" src="' + escapeHtml(m.avatarUrl) + '" alt="">' +
+          '<span class="board-author">' + escapeHtml(m.author) + '</span>' +
+          '<span class="board-time">' + escapeHtml(formatBoardTimestamp(m.createdAt)) + '</span>' +
+          '</div>' +
+          '<div class="board-post-text">' + escapeHtml(m.text) + '</div>' +
+          (m.imageUrl ? '<img class="board-post-image" src="' + escapeHtml(m.imageUrl) + '" alt="">' : '') +
+          '<div><button type="button" class="board-reply-btn" data-post="' + escapeHtml(m.id) + '">Reply</button></div>' +
+          replyFormHtml(m.id) +
+          '</div>';
+        html += renderList(m.id, depth + 1);
+        return html;
+      }).join('');
+    }
+
+    boardFeedEl.innerHTML = renderList('__root__', 0);
+
+    Array.prototype.slice.call(boardFeedEl.querySelectorAll('.board-reply-btn')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openReplyFormFor = btn.getAttribute('data-post');
+        renderBoard(latestPosts);
+      });
+    });
+
+    Array.prototype.slice.call(boardFeedEl.querySelectorAll('.reply-cancel')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openReplyFormFor = null;
+        renderBoard(latestPosts);
+      });
+    });
+
+    Array.prototype.slice.call(boardFeedEl.querySelectorAll('.reply-submit')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var form = btn.closest('.board-reply-form');
+        var name = form.querySelector('.reply-name').value.trim();
+        var text = form.querySelector('.reply-text').value.trim();
+        var imageFile = form.querySelector('.reply-image').files[0];
+        var includeInAlbum = form.querySelector('.reply-include-album').checked;
+        var parentId = btn.getAttribute('data-parent');
+        if (!name || !text) return;
+        btn.disabled = true;
+        btn.textContent = imageFile ? 'Uploading...' : 'Posting...';
+        (imageFile ? uploadMediaFile(imageFile) : Promise.resolve('')).then(function (imageUrl) {
+          return createPost(name, text, imageUrl, parentId, includeInAlbum);
+        }).then(function () {
+          openReplyFormFor = null;
+        }).catch(function () {
+          btn.disabled = false;
+          btn.textContent = 'Post Reply';
+          boardStatusEl.hidden = false;
+          boardStatusEl.textContent = "Couldn't post your reply — try again in a moment.";
+        });
+      });
+    });
+  }
+
+  if (fsDb) {
+    fsDb.collection('posts').orderBy('createdAt', 'asc').limit(500).onSnapshot(function (snapshot) {
+      boardStatusEl.hidden = true;
+      latestPosts = [];
+      snapshot.forEach(function (doc) {
+        var d = doc.data();
+        latestPosts.push({
+          id: doc.id,
+          author: d.author,
+          avatarUrl: d.avatarUrl,
+          text: d.text,
+          imageUrl: d.imageUrl,
+          parentId: d.parentId,
+          includeInAlbum: d.includeInAlbum,
+          createdAt: d.createdAt
+        });
+      });
+      renderBoard(latestPosts);
+      renderAlbumGrid();
+
+      var hasDanoPost = latestPosts.some(function (p) { return p.author === 'Dano'; });
+      if (!hasDanoPost) {
+        seedWelcomePost();
+      }
+    }, function () {
+      boardStatusEl.hidden = false;
+      boardStatusEl.textContent = "Couldn't load the message board right now. Try refreshing the page.";
+    });
+  }
+
+  var boardForm = document.getElementById('boardForm');
+  var boardNameInput = document.getElementById('boardName');
+  var avatarPreviewImg = document.getElementById('avatarPreviewImg');
+  var avatarPreviewHint = document.getElementById('avatarPreviewHint');
+  var avatarPreviewTimer = null;
+
+  boardNameInput.addEventListener('input', function () {
+    var name = boardNameInput.value.trim();
+    clearTimeout(avatarPreviewTimer);
+    if (!name || !fsDb) {
+      avatarPreviewImg.hidden = true;
+      avatarPreviewHint.hidden = false;
+      return;
+    }
+    avatarPreviewTimer = setTimeout(function () {
+      fsDb.collection('authors').doc(slugifyAuthorKey(name)).get().then(function (snap) {
+        if (snap.exists) return snap.data().avatarUrl;
+        return getUsedAvatars().then(function (used) {
+          return pickAvatarForName(name, used);
+        });
+      }).then(function (url) {
+        avatarPreviewImg.src = url;
+        avatarPreviewImg.hidden = false;
+        avatarPreviewHint.hidden = true;
+      });
+    }, 400);
+  });
+
+  boardForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!fsDb) return;
+    var name = boardNameInput.value.trim();
+    var text = document.getElementById('boardMessage').value.trim();
+    var imageFileInput = document.getElementById('boardImage');
+    var imageFile = imageFileInput.files[0];
+    var includeInAlbum = document.getElementById('boardIncludeInAlbum').checked;
+    if (!name || !text) return;
+    var submitBtn = boardForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = imageFile ? 'Uploading...' : 'Posting...';
+
+    (imageFile ? uploadMediaFile(imageFile) : Promise.resolve('')).then(function (imageUrl) {
+      return createPost(name, text, imageUrl, '', includeInAlbum);
+    }).then(function () {
+      document.getElementById('boardMessage').value = '';
+      imageFileInput.value = '';
+      document.getElementById('boardIncludeInAlbum').checked = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Post Message';
+    }).catch(function () {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Post Message';
+      boardStatusEl.hidden = false;
+      boardStatusEl.textContent = "Couldn't post your message — try again in a moment.";
+    });
+  });
+
+  /* ================= SCREEN SWITCHING ================= */
+
+  function switchScreen(target) {
+    if (target === currentScreen) return;
+
+    function doSwitch() {
+      RyanBeachdayFx.burst(browserWindowEl, function () {
+        showScreenImmediate(target);
+      });
+    }
+
+    if (currentScreen === 'rsvp' && !formSubmitted && formHasProgress()) {
+      showLeaveWarning(doSwitch);
+    } else {
+      doSwitch();
+    }
+  }
+
+  function goHome() {
+    if (currentScreen === 'rsvp' && !formSubmitted && formHasProgress()) {
+      showLeaveWarning(resetToIntro);
+    } else {
+      resetToIntro();
+    }
+  }
+
+  document.getElementById('homeBtn').addEventListener('click', goHome);
+  document.getElementById('rsvpNavBtn').addEventListener('click', function () { switchScreen('rsvp'); });
+  document.getElementById('albumNavBtn').addEventListener('click', function () { switchScreen('album'); });
+  document.getElementById('comingSoonNavBtn').addEventListener('click', function () { switchScreen('comingSoon'); });
+  document.getElementById('boardNavBtn').addEventListener('click', function () { switchScreen('board'); });
+  document.getElementById('supportNavBtn').addEventListener('click', function () { switchScreen('support'); });
+  document.getElementById('viewAlbumBtn').addEventListener('click', function () { switchScreen('album'); });
+  rsvpBtn.addEventListener('click', function () { switchScreen('rsvp'); });
+
+  document.getElementById('venmoBtn').addEventListener('click', function () {
+    window.open('https://venmo.com/Daniel-Belkind?txn=pay', '_blank', 'noopener');
+  });
 })();
 </script>
 </body>

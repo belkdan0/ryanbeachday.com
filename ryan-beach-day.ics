@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Ryan Beach Day//RSVP//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:ryan-beach-day-2026@ryanbeachday.com
+DTSTAMP:20260907T000000Z
+DTSTART;VALUE=DATE:20260919
+DTEND;VALUE=DATE:20260920
+SUMMARY:Ryan's Beach Day - 25th Nameday Bash
+DESCRIPTION:Join us at Will Rogers Beach to celebrate Ryan's 25th nameday! Time TBD - more details coming closer to the date.
+LOCATION:Will Rogers Beach
+END:VEVENT
+END:VCALENDAR
