@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
 <style>
   * { box-sizing: border-box; }
 
@@ -1994,8 +1995,19 @@
   var fsStorage = null;
   var openReplyFormFor = null;
 
+  // Set this once you've registered the app in Firebase Console -> App Check
+  // -> reCAPTCHA v3 provider. Left as-is, App Check activation is skipped
+  // entirely so a placeholder can never block real traffic.
+  var RECAPTCHA_SITE_KEY = 'REPLACE_WITH_RECAPTCHA_V3_SITE_KEY';
+
   try {
     firebase.initializeApp(firebaseConfig);
+    if (RECAPTCHA_SITE_KEY.indexOf('REPLACE_WITH') !== 0) {
+      firebase.appCheck().activate(
+        new firebase.appCheck.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+        true
+      );
+    }
     fsDb = firebase.firestore();
     fsStorage = firebase.storage();
   } catch (e) {
@@ -2040,7 +2052,9 @@
   }
 
   function getUsedAvatars() {
-    return fsDb.collection('authors').get().then(function (snap) {
+    // Capped well above the avatar pool size so this stays a bounded,
+    // constant-cost read no matter how large the authors collection grows.
+    return fsDb.collection('authors').limit(200).get().then(function (snap) {
       var used = {};
       snap.forEach(function (doc) {
         var data = doc.data();
@@ -2326,13 +2340,7 @@
   rsvpBtn.addEventListener('click', function () { switchScreen('rsvp'); });
 
   document.getElementById('venmoBtn').addEventListener('click', function () {
-    var a = document.createElement('a');
-    a.href = 'https://venmo.com/Daniel-Belkind?txn=pay';
-    a.target = '_blank';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.location.href = 'https://venmo.com/Daniel-Belkind?txn=pay';
   });
 })();
 </script>
