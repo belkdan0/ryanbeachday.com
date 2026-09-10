@@ -6,6 +6,7 @@
 <title>Ryan Beachday</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/98.css@0.1.20/dist/98.css">
 <script src="explosion.js"></script>
+<script src="games.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
@@ -759,6 +760,227 @@
     border: 1px solid #808080;
     flex: none;
   }
+
+  /* ---- mini games ---- */
+
+  .game-picker-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .game-picker-row button {
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+
+  .game-picker-row button.active {
+    background: #b6b6b6;
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .game-panel { display: none; }
+  .game-panel.active { display: block; }
+
+  .game-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border: 1px inset #808080;
+    background: #ddd;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 13px;
+  }
+
+  .game-toolbar button {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+
+  .game-stage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    background: #000;
+    border: 2px inset #808080;
+    position: relative;
+  }
+
+  .game-stage canvas {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    touch-action: none;
+  }
+
+  .game-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-family: "Times New Roman", Times, serif;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .game-overlay.show { display: flex; }
+
+  .game-overlay-text {
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  .game-overlay-namegate,
+  .game-overlay-gameover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .name-gate-input {
+    max-width: 220px;
+  }
+
+  /* ---- leaderboard ---- */
+
+  .leaderboard-columns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .leaderboard-columns { grid-template-columns: 1fr; }
+  }
+
+  .leaderboard-col {
+    border: 1px inset #808080;
+    background: #ddd;
+    padding: 10px 12px;
+  }
+
+  .leaderboard-title {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 15px;
+    margin: 0 0 8px;
+    text-align: center;
+  }
+
+  .leaderboard-list {
+    margin: 0;
+    padding-left: 22px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 13px;
+  }
+
+  .leaderboard-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px dotted #999;
+  }
+
+  .leaderboard-avatar {
+    width: 22px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #808080;
+    flex: none;
+  }
+
+  .leaderboard-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .leaderboard-value {
+    flex: none;
+    font-weight: bold;
+  }
+
+  .leaderboard-empty {
+    list-style: none;
+    margin-left: -22px;
+    text-align: center;
+    color: #666;
+  }
+
+  .game-dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 44px);
+    gap: 4px;
+    justify-content: center;
+    margin: 14px auto 0;
+  }
+
+  .game-dpad button {
+    font-size: 16px;
+    padding: 0;
+  }
+
+  /* minesweeper */
+
+  .mine-grid {
+    display: grid;
+    gap: 1px;
+    background: #808080;
+    border: 3px inset #808080;
+  }
+
+  .mine-cell {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Courier New", Courier, monospace;
+    font-weight: bold;
+    font-size: 13px;
+    background: #c0c0c0;
+    border: 2px outset #fff;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mine-cell.revealed {
+    border: 1px solid #999;
+    background: #d8d8d8;
+    cursor: default;
+  }
+
+  .mine-cell.mine.revealed { background: #ff5555; }
+  .mine-cell.exploded { background: #ff0000 !important; }
+  .mine-cell.flagged { background: #c0c0c0; }
+
+  .mine-cell[data-count="1"] { color: #0000ff; }
+  .mine-cell[data-count="2"] { color: #008000; }
+  .mine-cell[data-count="3"] { color: #ff0000; }
+  .mine-cell[data-count="4"] { color: #000080; }
+  .mine-cell[data-count="5"] { color: #800000; }
+  .mine-cell[data-count="6"] { color: #008080; }
+  .mine-cell[data-count="7"] { color: #000; }
+  .mine-cell[data-count="8"] { color: #808080; }
 </style>
 </head>
 <body>
@@ -786,6 +1008,7 @@
       <button type="button" id="albumNavBtn">Photo Album</button>
       <button type="button" id="boardNavBtn">Message Board</button>
       <button type="button" id="comingSoonNavBtn">COMING SOON...</button>
+      <button type="button" id="gamesNavBtn">Mini Games</button>
       <button type="button" id="supportNavBtn">Support This Website</button>
     </div>
 
@@ -1034,6 +1257,123 @@
         <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
       </div>
 
+      <!-- ===== MINI GAMES SCREEN ===== -->
+      <div class="screen text-screen" id="screenGames" hidden>
+
+        <h1 class="page-title">Mini Games</h1>
+        <p class="intro-line">Bored waiting for beach day? Kill some time with a classic.</p>
+        <hr class="rainbow-hr">
+
+        <div class="game-picker-row">
+          <button type="button" class="game-pick-btn" data-game="minesweeper">&#128163; Minesweeper</button>
+          <button type="button" class="game-pick-btn" data-game="snake">&#128009; Snake</button>
+          <button type="button" class="game-pick-btn" data-game="pong">&#127955; Pong vs. Bot</button>
+          <button type="button" class="game-pick-btn" data-game="leaderboard">&#127942; Leaderboard</button>
+        </div>
+
+        <!-- Minesweeper -->
+        <div class="game-panel" id="gamePanelMinesweeper" data-game-panel="minesweeper">
+          <div class="game-toolbar">
+            <span>Player: <strong id="minePlayerName">&mdash;</strong></span>
+            <button type="button" id="mineChangePlayerBtn">Change Player</button>
+            <span>&#128163; Mines left: <strong id="mineCounter">10</strong></span>
+            <button type="button" id="mineResetBtn"><span id="mineFace">&#128578;</span> New Game</button>
+            <span>&#9200; <strong id="mineTimer">0</strong>s</span>
+            <button type="button" id="mineFlagModeBtn">&#128681; Flag Mode: Off</button>
+          </div>
+          <div class="game-stage">
+            <div class="mine-grid" id="mineGrid"></div>
+            <div class="game-overlay show" id="mineOverlay">
+              <div class="game-overlay-namegate" id="mineNameGate">
+                <div class="game-overlay-text">Enter your name to play Minesweeper</div>
+                <input class="text-field name-gate-input" type="text" id="mineNameInput" placeholder="Display name" maxlength="24">
+                <button type="button" id="mineNameStartBtn">Start Game</button>
+              </div>
+            </div>
+          </div>
+          <p class="site-footer" style="margin-top:10px;">
+            Tap a tile to reveal it. Turn on Flag Mode (or right-click on desktop) to mark suspected mines.
+          </p>
+        </div>
+
+        <!-- Snake -->
+        <div class="game-panel" id="gamePanelSnake" data-game-panel="snake">
+          <div class="game-toolbar">
+            <span>Player: <strong id="snakePlayerName">&mdash;</strong></span>
+            <button type="button" id="snakeChangePlayerBtn">Change Player</button>
+            <span>Score: <strong id="snakeScore">0</strong></span>
+            <span>Best: <strong id="snakeBest">0</strong></span>
+            <button type="button" id="snakeResetBtn">&#128260; Restart</button>
+          </div>
+          <div class="game-stage">
+            <canvas id="snakeCanvas" width="320" height="320"></canvas>
+            <div class="game-overlay show" id="snakeOverlay">
+              <div class="game-overlay-namegate" id="snakeNameGate">
+                <div class="game-overlay-text">Enter your name to play Snake</div>
+                <input class="text-field name-gate-input" type="text" id="snakeNameInput" placeholder="Display name" maxlength="24">
+                <button type="button" id="snakeNameStartBtn">Start Game</button>
+              </div>
+              <div class="game-overlay-gameover" id="snakeGameOverBlock" hidden>
+                <div class="game-overlay-text" id="snakeOverlayText">Game Over</div>
+                <button type="button" id="snakeOverlayBtn">Play Again</button>
+              </div>
+            </div>
+          </div>
+          <div class="game-dpad">
+            <span></span><button type="button" class="dpad-btn" data-dir="up" aria-label="Up">&#8593;</button><span></span>
+            <button type="button" class="dpad-btn" data-dir="left" aria-label="Left">&#8592;</button><span></span><button type="button" class="dpad-btn" data-dir="right" aria-label="Right">&#8594;</button>
+            <span></span><button type="button" class="dpad-btn" data-dir="down" aria-label="Down">&#8595;</button><span></span>
+          </div>
+          <p class="site-footer" style="margin-top:10px;">Use arrow keys / WASD, or the buttons above on mobile.</p>
+        </div>
+
+        <!-- Pong -->
+        <div class="game-panel" id="gamePanelPong" data-game-panel="pong">
+          <div class="game-toolbar">
+            <span>Player: <strong id="pongPlayerName">&mdash;</strong></span>
+            <button type="button" id="pongChangePlayerBtn">Change Player</button>
+            <span>You: <strong id="pongScorePlayer">0</strong></span>
+            <span>Bot: <strong id="pongScoreBot">0</strong></span>
+            <button type="button" id="pongResetBtn">&#128260; Restart</button>
+          </div>
+          <div class="game-stage">
+            <canvas id="pongCanvas" width="400" height="260"></canvas>
+            <div class="game-overlay show" id="pongOverlay">
+              <div class="game-overlay-namegate" id="pongNameGate">
+                <div class="game-overlay-text">Enter your name to play Pong</div>
+                <input class="text-field name-gate-input" type="text" id="pongNameInput" placeholder="Display name" maxlength="24">
+                <button type="button" id="pongNameStartBtn">Start Game</button>
+              </div>
+              <div class="game-overlay-gameover" id="pongGameOverBlock" hidden>
+                <div class="game-overlay-text" id="pongOverlayText">Game Over</div>
+                <button type="button" id="pongOverlayBtn">Play Again</button>
+              </div>
+            </div>
+          </div>
+          <p class="site-footer" style="margin-top:10px;">Drag/touch the stage or use the up/down arrow keys to move your paddle. First to 7 wins.</p>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="game-panel" id="gamePanelLeaderboard" data-game-panel="leaderboard">
+          <div class="leaderboard-columns">
+            <div class="leaderboard-col">
+              <h2 class="leaderboard-title">&#128163; Minesweeper Wins</h2>
+              <ol class="leaderboard-list" id="lbMinesweeperList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
+            </div>
+            <div class="leaderboard-col">
+              <h2 class="leaderboard-title">&#128009; Snake Top Scores</h2>
+              <ol class="leaderboard-list" id="lbSnakeList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
+            </div>
+            <div class="leaderboard-col">
+              <h2 class="leaderboard-title">&#127955; Pong Wins</h2>
+              <ol class="leaderboard-list" id="lbPongList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
+            </div>
+          </div>
+        </div>
+
+        <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+      </div>
+
       <!-- ===== SUPPORT THIS WEBSITE SCREEN ===== -->
       <div class="screen text-screen" id="screenSupport" hidden>
 
@@ -1147,6 +1487,7 @@
     album: document.getElementById('screenAlbum'),
     comingSoon: document.getElementById('screenComingSoon'),
     board: document.getElementById('screenBoard'),
+    games: document.getElementById('screenGames'),
     support: document.getElementById('screenSupport')
   };
   var currentScreen = 'home';
@@ -1154,10 +1495,15 @@
   var JANGO_FETT_AVATAR = "https://images.steamusercontent.com/ugc/1826783377633780872/B9C816D42C3578E5555846F01357F4EE48ADADD1/";
 
   function showScreenImmediate(target) {
+    var leavingGames = currentScreen === 'games' && target !== 'games';
     Object.keys(screens).forEach(function (key) {
       screens[key].hidden = key !== target;
     });
     currentScreen = target;
+    if (window.RyanBeachdayGames) {
+      if (target === 'games') window.RyanBeachdayGames.onEnter();
+      else if (leavingGames) window.RyanBeachdayGames.onLeave();
+    }
   }
 
   /* ================= HOME SCREEN: beach hero + pixel explosion intro ================= */
@@ -2344,7 +2690,10 @@
   document.getElementById('albumNavBtn').addEventListener('click', function () { switchScreen('album'); });
   document.getElementById('comingSoonNavBtn').addEventListener('click', function () { switchScreen('comingSoon'); });
   document.getElementById('boardNavBtn').addEventListener('click', function () { switchScreen('board'); });
+  document.getElementById('gamesNavBtn').addEventListener('click', function () { switchScreen('games'); });
   document.getElementById('supportNavBtn').addEventListener('click', function () { switchScreen('support'); });
+
+  if (window.RyanBeachdayGames) window.RyanBeachdayGames.init(fsDb, getOrCreateAuthor);
   document.getElementById('viewAlbumBtn').addEventListener('click', function () { switchScreen('album'); });
   rsvpBtn.addEventListener('click', function () { switchScreen('rsvp'); });
 
