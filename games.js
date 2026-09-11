@@ -119,6 +119,7 @@ window.RyanBeachdayGames = (function () {
     var MINES = 10;
 
     var gridEl, counterEl, timerEl, faceEl, resetBtn, flagModeBtn, nameGate;
+    var overlayEl, overlayTextEl, overlayBtn, gameOverBlockEl, nameGateBlockEl;
     var cells = [];
     var minesPlaced, gameOver, flagMode, flagCount, revealedCount, seconds, timerHandle;
 
@@ -193,6 +194,17 @@ window.RyanBeachdayGames = (function () {
       counterEl.textContent = MINES - flagCount;
     }
 
+    function showOverlay(text) {
+      overlayTextEl.textContent = text;
+      gameOverBlockEl.hidden = false;
+      nameGateBlockEl.hidden = true;
+      overlayEl.classList.add('show');
+    }
+
+    function hideOverlay() {
+      overlayEl.classList.remove('show');
+    }
+
     function startTimer() {
       stopTimer();
       timerHandle = setInterval(function () {
@@ -232,6 +244,7 @@ window.RyanBeachdayGames = (function () {
         });
         updateCounter();
         recordWin('leaderboardMinesweeper', nameGate.getName(), nameGate.getAvatarUrl());
+        showOverlay('You Win! \u{1F60E}');
       }
     }
 
@@ -243,6 +256,7 @@ window.RyanBeachdayGames = (function () {
         if (c.mine) { c.revealed = true; renderCell(i); }
       });
       cells[lostIdx].el.classList.add('exploded');
+      showOverlay('Game Over — You hit a mine! \u{1F4A5}');
     }
 
     function reveal(idx) {
@@ -288,6 +302,7 @@ window.RyanBeachdayGames = (function () {
       seconds = 0;
       faceEl.textContent = '\u{1F642}';
       timerEl.textContent = '0';
+      hideOverlay();
       buildGrid();
       updateCounter();
 
@@ -326,10 +341,16 @@ window.RyanBeachdayGames = (function () {
       flagModeBtn = document.getElementById('mineFlagModeBtn');
       flagMode = false;
 
+      overlayEl = document.getElementById('mineOverlay');
+      overlayTextEl = document.getElementById('mineOverlayText');
+      overlayBtn = document.getElementById('mineOverlayBtn');
+      gameOverBlockEl = document.getElementById('mineGameOverBlock');
+      nameGateBlockEl = document.getElementById('mineNameGate');
+
       nameGate = createNameGate({
-        overlayEl: document.getElementById('mineOverlay'),
-        gateEl: document.getElementById('mineNameGate'),
-        otherBlockEl: null,
+        overlayEl: overlayEl,
+        gateEl: nameGateBlockEl,
+        otherBlockEl: gameOverBlockEl,
         inputEl: document.getElementById('mineNameInput'),
         startBtn: document.getElementById('mineNameStartBtn'),
         playerNameEl: document.getElementById('minePlayerName'),
@@ -339,6 +360,7 @@ window.RyanBeachdayGames = (function () {
       });
 
       resetBtn.addEventListener('click', guardedReset);
+      overlayBtn.addEventListener('click', guardedReset);
       flagModeBtn.addEventListener('click', function () {
         flagMode = !flagMode;
         flagModeBtn.textContent = '\u{1F6A9} Flag Mode: ' + (flagMode ? 'On' : 'Off');
@@ -838,12 +860,13 @@ window.RyanBeachdayGames = (function () {
         el.innerHTML = '<li class="leaderboard-empty">No scores yet — be the first!</li>';
         return;
       }
-      el.innerHTML = docs.map(function (d) {
+      el.innerHTML = docs.map(function (d, i) {
         var avatar = d.avatarUrl
           ? '<img class="leaderboard-avatar" src="' + escapeHtml(d.avatarUrl) + '" alt="">'
           : '<span class="leaderboard-avatar"></span>';
+        var trophy = i === 0 ? ' \u{1F3C6}' : '';
         return '<li>' + avatar +
-          '<span class="leaderboard-name">' + escapeHtml(d.displayName) + '</span>' +
+          '<span class="leaderboard-name">' + escapeHtml(d.displayName) + trophy + '</span>' +
           '<span class="leaderboard-value">' + d[field] + ' ' + label + '</span></li>';
       }).join('');
     }
