@@ -1251,13 +1251,7 @@
         </p>
         <hr class="rainbow-hr">
 
-        <div class="coming-soon" id="boardStatus">&#8987; Connecting to the message board...</div>
-
-        <div class="board-feed" id="boardFeed"></div>
-
-        <hr class="rainbow-hr">
-
-        <h2 style="font-family:'Times New Roman',Times,serif;font-size:16px;margin:18px 0 8px;">Post a Message</h2>
+        <h2 style="font-family:'Times New Roman',Times,serif;font-size:16px;margin:0 0 8px;">Post a Message</h2>
 
         <form id="boardForm">
           <div class="field-row">
@@ -1294,6 +1288,12 @@
             <button type="submit">Post Message</button>
           </div>
         </form>
+
+        <hr class="rainbow-hr">
+
+        <div class="coming-soon" id="boardStatus">&#8987; Connecting to the message board...</div>
+
+        <div class="board-feed" id="boardFeed"></div>
 
         <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
       </div>
@@ -2548,6 +2548,9 @@
       if (!byParent[key]) byParent[key] = [];
       byParent[key].push(m);
     });
+    // Top-level posts show newest first; replies within a thread stay in
+    // their natural oldest-to-newest conversation order.
+    if (byParent.__root__) byParent.__root__.reverse();
 
     function replyFormHtml(postId) {
       if (openReplyFormFor !== postId) return '';
