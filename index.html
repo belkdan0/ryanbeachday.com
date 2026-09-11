@@ -2054,12 +2054,25 @@
   );
 
   var formSubmitted = false;
-  rsvpForm.addEventListener('submit', function () {
+  rsvpForm.addEventListener('submit', function (e) {
     formSubmitted = true;
     var attending = document.querySelector('input[name="attending"]:checked');
     var isYes = !!attending && attending.value.indexOf('Yes') === 0;
     autoresponseField.value = isYes ? AUTORESPONSE_YES : AUTORESPONSE_NO;
     rsvpNextField.value = 'https://ryanbeachday.com/thanks.html?attending=' + (isYes ? 'yes' : 'no');
+
+    // The form posts straight to formsubmit.co (a real navigation), so a
+    // "yes" RSVP is best-effort saved to the guest list first — with a
+    // timeout — before letting that navigation through, so the email flow
+    // is never blocked or broken even if this write fails.
+    if (!isYes) return;
+    e.preventDefault();
+    var submitBtn = rsvpForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    recordGuestListEntry(guestDisplayName()).then(function () {
+      rsvpForm.submit();
+    });
   });
 
   function formHasProgress() {
@@ -2108,28 +2121,69 @@
 
   /* ================= GUEST LIST ================= */
 
-  // RSVPs currently go straight to email via formsubmit.co and aren't
-  // captured anywhere queryable, so this list is maintained by hand for now.
+  // Hand-typed backlog of RSVPs from before this list was captured
+  // automatically. New "yes" RSVPs are appended live via Firestore below.
   var GUEST_LIST = [
+    'Ryan L.', 'Daniel B.', 'Asher W.', 'Hannah R.', 'Sophie B + Caleb',
+    'Zoe N', 'remdog', 'Abbey M.', 'Maria M.', 'Victor B.', 'Darlene K.', 'Sarah G.'
   ];
+
+  var liveGuestList = [];
 
   function renderGuestList() {
     var statusEl = document.getElementById('guestListStatus');
     var gridEl = document.getElementById('guestListGrid');
-    if (!GUEST_LIST.length) {
+    var allNames = GUEST_LIST.concat(liveGuestList);
+    if (!allNames.length) {
       statusEl.hidden = false;
       statusEl.textContent = "No RSVPs listed yet — check back soon!";
       gridEl.innerHTML = '';
       return;
     }
     statusEl.hidden = false;
-    statusEl.textContent = GUEST_LIST.length + (GUEST_LIST.length === 1 ? ' person has' : ' people have') + " RSVP'd yes so far!";
-    gridEl.innerHTML = GUEST_LIST.map(function (name) {
+    statusEl.textContent = allNames.length + (allNames.length === 1 ? ' person has' : ' people have') + " RSVP'd yes so far!";
+    gridEl.innerHTML = allNames.map(function (name) {
       return '<span class="guest-chip">' + escapeHtml(name) + '</span>';
     }).join('');
   }
 
   renderGuestList();
+
+  // "First L." from a full name; a single-word name (e.g. a handle) passes
+  // through unchanged since there's no last name to abbreviate.
+  function formatGuestName(fullName) {
+    var parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return fullName.trim();
+    return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.';
+  }
+
+  // Plus-ones are shown by first name only, e.g. "Sophie B + Caleb".
+  function formatPlusOneName(fullName) {
+    var parts = fullName.trim().split(/\s+/).filter(Boolean);
+    return parts[0] || fullName.trim();
+  }
+
+  function guestDisplayName() {
+    var fullName = document.getElementById('fullName').value.trim();
+    var display = formatGuestName(fullName);
+    var wantsPlusOneChecked = document.querySelector('input[name="wants_plus_one"]:checked');
+    var plusOneVal = plusOneName.value.trim();
+    if (wantsPlusOneChecked && wantsPlusOneChecked.value === 'Yes' && plusOneVal) {
+      display += ' + ' + formatPlusOneName(plusOneVal);
+    }
+    return display;
+  }
+
+  function recordGuestListEntry(name) {
+    if (!fsDb || !name) return Promise.resolve();
+    return withTimeout(
+      fsDb.collection('guestList').add({ name: name, createdAt: Date.now() }),
+      4000,
+      'guestlist/timeout'
+    ).catch(function (err) {
+      console.error('guest list write failed:', err);
+    });
+  }
 
   /* ================= PHOTO ALBUM + BEACH DAY GALLERY SCREENS ================= */
 
@@ -2810,6 +2864,17 @@
     }, function () {
       boardStatusEl.hidden = false;
       boardStatusEl.textContent = "Couldn't load the message board right now. Try refreshing the page.";
+    });
+
+    fsDb.collection('guestList').orderBy('createdAt', 'asc').limit(500).onSnapshot(function (snapshot) {
+      liveGuestList = [];
+      snapshot.forEach(function (doc) {
+        var name = doc.data().name;
+        if (name) liveGuestList.push(name);
+      });
+      renderGuestList();
+    }, function (err) {
+      console.error('guest list listen failed:', err);
     });
   }
 
