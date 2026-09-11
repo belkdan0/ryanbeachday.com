@@ -810,6 +810,7 @@
     background: #000;
     border: 2px inset #808080;
     position: relative;
+    overflow-x: auto;
   }
 
   .game-stage canvas {
@@ -860,12 +861,29 @@
 
   .leaderboard-columns {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 16px;
   }
 
-  @media (max-width: 640px) {
-    .leaderboard-columns { grid-template-columns: 1fr; }
+  /* ---- minesweeper difficulty picker ---- */
+
+  .difficulty-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 12px;
+  }
+
+  .difficulty-row button {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+
+  .difficulty-row button.active {
+    background: #b6b6b6;
+    border-color: #808080 #fff #fff #808080;
   }
 
   .leaderboard-col {
@@ -955,14 +973,14 @@
   }
 
   .mine-cell {
-    width: 26px;
-    height: 26px;
+    width: var(--mine-cell-size, 26px);
+    height: var(--mine-cell-size, 26px);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: "Courier New", Courier, monospace;
     font-weight: bold;
-    font-size: 13px;
+    font-size: var(--mine-cell-font, 13px);
     background: #c0c0c0;
     border: 2px outset #fff;
     cursor: pointer;
@@ -1279,6 +1297,12 @@
 
         <!-- Minesweeper -->
         <div class="game-panel" id="gamePanelMinesweeper" data-game-panel="minesweeper">
+          <div class="difficulty-row">
+            <span>Difficulty:</span>
+            <button type="button" class="difficulty-btn active" data-difficulty="easy">Easy</button>
+            <button type="button" class="difficulty-btn" data-difficulty="medium">Medium</button>
+            <button type="button" class="difficulty-btn" data-difficulty="hard">Hard</button>
+          </div>
           <div class="game-toolbar">
             <span>Player: <strong id="minePlayerName">&mdash;</strong></span>
             <button type="button" id="mineChangePlayerBtn">Change Player</button>
@@ -1367,8 +1391,16 @@
         <div class="game-panel" id="gamePanelLeaderboard" data-game-panel="leaderboard">
           <div class="leaderboard-columns">
             <div class="leaderboard-col">
-              <h2 class="leaderboard-title">&#128163; Minesweeper Wins</h2>
-              <ol class="leaderboard-list" id="lbMinesweeperList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
+              <h2 class="leaderboard-title">&#128163; Minesweeper Easy</h2>
+              <ol class="leaderboard-list" id="lbMinesweeperEasyList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
+            </div>
+            <div class="leaderboard-col">
+              <h2 class="leaderboard-title">&#128163; Minesweeper Medium</h2>
+              <ol class="leaderboard-list" id="lbMinesweeperMediumList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
+            </div>
+            <div class="leaderboard-col">
+              <h2 class="leaderboard-title">&#128163; Minesweeper Hard</h2>
+              <ol class="leaderboard-list" id="lbMinesweeperHardList"><li class="leaderboard-empty">Loading&hellip;</li></ol>
             </div>
             <div class="leaderboard-col">
               <h2 class="leaderboard-title">&#128009; Snake Top Scores</h2>

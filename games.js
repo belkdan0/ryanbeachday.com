@@ -57,6 +57,33 @@ window.RyanBeachdayGames = (function () {
     });
   }
 
+  // One doc per player, like recordWin, but only overwrites their record
+  // when the new time beats their existing best (lower is better).
+  function recordBestTime(collectionName, name, avatarUrl, timeSeconds) {
+    if (!fsDb || !name) return;
+    var ref = fsDb.collection(collectionName).doc(slugifyPlayerName(name));
+    ref.get().then(function (snap) {
+      var current = snap.exists ? snap.data().timeSeconds : null;
+      if (current == null || timeSeconds < current) {
+        return ref.set({
+          displayName: name,
+          avatarUrl: avatarUrl || '',
+          timeSeconds: timeSeconds,
+          updatedAt: Date.now()
+        }, { merge: true });
+      }
+    }).catch(function (err) {
+      console.error('leaderboard time write failed (' + collectionName + '):', err);
+    });
+  }
+
+  function formatSeconds(sec) {
+    sec = Math.round(sec);
+    if (sec < 60) return sec + 's';
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
   /**
    * Gates a game panel behind a display-name prompt, reusing the panel's
    * game-overlay element as the prompt's home. Games that also show a
@@ -115,13 +142,28 @@ window.RyanBeachdayGames = (function () {
   /* ================= MINESWEEPER ================= */
 
   var Minesweeper = (function () {
-    var SIZE = 9;
-    var MINES = 10;
+    var DIFFICULTIES = {
+      easy: { size: 9, mines: 10, cellPx: 26, collection: 'leaderboardMinesweeperEasy' },
+      medium: { size: 13, mines: 30, cellPx: 20, collection: 'leaderboardMinesweeperMedium' },
+      hard: { size: 16, mines: 50, cellPx: 17, collection: 'leaderboardMinesweeperHard' }
+    };
+
+    var difficulty = 'easy';
+    var SIZE, MINES, CELL_PX;
 
     var gridEl, counterEl, timerEl, faceEl, resetBtn, flagModeBtn, nameGate;
     var overlayEl, overlayTextEl, overlayBtn, gameOverBlockEl, nameGateBlockEl;
+    var difficultyBtns;
     var cells = [];
     var minesPlaced, gameOver, flagMode, flagCount, revealedCount, seconds, timerHandle;
+
+    function applyDifficulty(key) {
+      difficulty = key;
+      var cfg = DIFFICULTIES[key];
+      SIZE = cfg.size;
+      MINES = cfg.mines;
+      CELL_PX = cfg.cellPx;
+    }
 
     function neighbors(idx) {
       var x = idx % SIZE, y = Math.floor(idx / SIZE);
@@ -138,7 +180,9 @@ window.RyanBeachdayGames = (function () {
 
     function buildGrid() {
       gridEl.innerHTML = '';
-      gridEl.style.gridTemplateColumns = 'repeat(' + SIZE + ', 26px)';
+      gridEl.style.setProperty('--mine-cell-size', CELL_PX + 'px');
+      gridEl.style.setProperty('--mine-cell-font', Math.max(10, Math.min(15, CELL_PX - 10)) + 'px');
+      gridEl.style.gridTemplateColumns = 'repeat(' + SIZE + ', ' + CELL_PX + 'px)';
       cells = [];
       for (var i = 0; i < SIZE * SIZE; i++) {
         var el = document.createElement('div');
@@ -243,8 +287,8 @@ window.RyanBeachdayGames = (function () {
           if (c.mine && !c.flagged) { c.flagged = true; flagCount++; renderCell(i); }
         });
         updateCounter();
-        recordWin('leaderboardMinesweeper', nameGate.getName(), nameGate.getAvatarUrl());
-        showOverlay('You Win! \u{1F60E}');
+        recordBestTime(DIFFICULTIES[difficulty].collection, nameGate.getName(), nameGate.getAvatarUrl(), seconds);
+        showOverlay('You Win! \u{1F60E} — ' + formatSeconds(seconds));
       }
     }
 
@@ -366,6 +410,17 @@ window.RyanBeachdayGames = (function () {
         flagModeBtn.textContent = '\u{1F6A9} Flag Mode: ' + (flagMode ? 'On' : 'Off');
       });
 
+      difficultyBtns = document.querySelectorAll('.difficulty-btn');
+      difficultyBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          applyDifficulty(btn.getAttribute('data-difficulty'));
+          difficultyBtns.forEach(function (b) { b.classList.toggle('active', b === btn); });
+          resetGame();
+          if (!nameGate.getName()) nameGate.showGate();
+        });
+      });
+
+      applyDifficulty(difficulty);
       resetGame();
       nameGate.showGate();
     }
@@ -838,13 +893,16 @@ window.RyanBeachdayGames = (function () {
   var Leaderboard = (function () {
     var TOP_N = 5;
 
-    // Minesweeper/Pong rank by total wins (one doc per player, so a player
-    // holds at most one spot). Snake ranks by individual game scores (one
-    // doc per game played), so the same player can hold multiple spots.
+    // Minesweeper ranks by fastest win time per difficulty (one doc per
+    // player, lower is better). Pong ranks by total wins (one doc per
+    // player). Snake ranks by individual game scores (one doc per game
+    // played), so the same player can hold multiple spots.
     var CONFIGS = [
-      { key: 'minesweeper', collection: 'leaderboardMinesweeper', field: 'wins', label: 'wins' },
-      { key: 'snake', collection: 'leaderboardSnake', field: 'score', label: 'pts' },
-      { key: 'pong', collection: 'leaderboardPong', field: 'wins', label: 'wins' }
+      { key: 'minesweeperEasy', collection: 'leaderboardMinesweeperEasy', field: 'timeSeconds', order: 'asc', elId: 'lbMinesweeperEasyList', formatValue: formatSeconds },
+      { key: 'minesweeperMedium', collection: 'leaderboardMinesweeperMedium', field: 'timeSeconds', order: 'asc', elId: 'lbMinesweeperMediumList', formatValue: formatSeconds },
+      { key: 'minesweeperHard', collection: 'leaderboardMinesweeperHard', field: 'timeSeconds', order: 'asc', elId: 'lbMinesweeperHardList', formatValue: formatSeconds },
+      { key: 'snake', collection: 'leaderboardSnake', field: 'score', order: 'desc', elId: 'lbSnakeList', label: 'pts' },
+      { key: 'pong', collection: 'leaderboardPong', field: 'wins', order: 'desc', elId: 'lbPongList', label: 'wins' }
     ];
     var listEls = {};
     var unsubscribers = {};
@@ -855,7 +913,7 @@ window.RyanBeachdayGames = (function () {
       return div.innerHTML;
     }
 
-    function renderList(el, docs, field, label) {
+    function renderList(el, docs, cfg) {
       if (!docs.length) {
         el.innerHTML = '<li class="leaderboard-empty">No scores yet — be the first!</li>';
         return;
@@ -865,16 +923,17 @@ window.RyanBeachdayGames = (function () {
         var avatar = d.avatarUrl
           ? '<img class="leaderboard-avatar" src="' + escapeHtml(d.avatarUrl) + '" alt="">'
           : '<span class="leaderboard-avatar"></span>';
+        var value = cfg.formatValue ? cfg.formatValue(d[cfg.field]) : d[cfg.field] + ' ' + cfg.label;
         return '<li>' + trophy + avatar +
           '<span class="leaderboard-name">' + escapeHtml(d.displayName) + '</span>' +
-          '<span class="leaderboard-value">' + d[field] + ' ' + label + '</span></li>';
+          '<span class="leaderboard-value">' + value + '</span></li>';
       }).join('');
     }
 
     function init() {
-      listEls.minesweeper = document.getElementById('lbMinesweeperList');
-      listEls.snake = document.getElementById('lbSnakeList');
-      listEls.pong = document.getElementById('lbPongList');
+      CONFIGS.forEach(function (cfg) {
+        listEls[cfg.key] = document.getElementById(cfg.elId);
+      });
     }
 
     function start() {
@@ -885,10 +944,10 @@ window.RyanBeachdayGames = (function () {
           return;
         }
         unsubscribers[cfg.key] = fsDb.collection(cfg.collection)
-          .orderBy(cfg.field, 'desc')
+          .orderBy(cfg.field, cfg.order)
           .limit(TOP_N)
           .onSnapshot(function (snap) {
-            renderList(listEls[cfg.key], snap.docs.map(function (d) { return d.data(); }), cfg.field, cfg.label);
+            renderList(listEls[cfg.key], snap.docs.map(function (d) { return d.data(); }), cfg);
           }, function (err) {
             console.error('leaderboard listen failed (' + cfg.collection + '):', err);
             listEls[cfg.key].innerHTML = '<li class="leaderboard-empty">Couldn\'t load leaderboard.</li>';
