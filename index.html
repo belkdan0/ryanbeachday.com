@@ -615,6 +615,24 @@
     border: none;
     background: none;
     cursor: pointer;
+    position: relative;
+  }
+
+  .video-play-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    pointer-events: none;
   }
 
   .coming-soon {
@@ -2148,7 +2166,8 @@
 
     var html = albumLightboxItems.map(function (item, idx) {
       var mediaHtml = item.type === 'video'
-        ? '<video src="' + escapeHtml(item.url) + '" muted preload="metadata"></video>'
+        ? '<video src="' + escapeHtml(item.url) + '" muted playsinline preload="metadata"></video>' +
+          '<span class="video-play-badge">&#9654;</span>'
         : '<img src="' + escapeHtml(item.url) + '" alt="">';
       return '<div class="photo-slot filled-slot" data-album-index="' + idx + '" tabindex="0" role="button">' + mediaHtml + '</div>';
     }).join('');
@@ -2158,6 +2177,16 @@
     }
 
     photoGridAlbumEl.innerHTML = html;
+
+    // Videos load with preload="metadata" only (no poster image is available
+    // for user-uploaded files), which leaves most browsers showing a blank
+    // frame. Nudging currentTime forward once metadata is ready forces the
+    // browser to decode and paint a real frame as a thumbnail.
+    Array.prototype.slice.call(photoGridAlbumEl.querySelectorAll('.filled-slot video')).forEach(function (vid) {
+      vid.addEventListener('loadedmetadata', function () {
+        try { vid.currentTime = Math.min(0.1, vid.duration || 0.1); } catch (e) {}
+      });
+    });
 
     Array.prototype.slice.call(photoGridAlbumEl.querySelectorAll('.filled-slot')).forEach(function (slot) {
       var openThisItem = function () {
