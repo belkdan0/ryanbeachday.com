@@ -646,6 +646,23 @@
     background: #ddd;
   }
 
+  .guest-list-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .guest-chip {
+    display: inline-block;
+    padding: 8px 14px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+  }
+
   .construction {
     background: repeating-linear-gradient(45deg, #ffe600, #ffe600 12px, #000 12px, #000 24px);
     color: #fff;
@@ -1055,6 +1072,7 @@
     <div class="toolbar-row">
       <button type="button" id="homeBtn">&#8962; Home</button>
       <button type="button" id="rsvpNavBtn">RSVP</button>
+      <button type="button" id="guestListNavBtn">Guest List</button>
       <button type="button" id="albumNavBtn">Photo Album</button>
       <button type="button" id="boardNavBtn">Message Board</button>
       <button type="button" id="comingSoonNavBtn">COMING SOON...</button>
@@ -1175,6 +1193,20 @@
           <br>
           <button type="button" id="viewAlbumBtn">View the Photo Album &raquo;</button>
         </div>
+
+        <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
+      </div>
+
+      <!-- ===== GUEST LIST SCREEN ===== -->
+      <div class="screen text-screen" id="screenGuestList" hidden>
+
+        <h1 class="page-title">Guest List</h1>
+        <p class="intro-line">First name + last initial of everyone who's RSVP'd yes so far.</p>
+        <hr class="rainbow-hr">
+
+        <div class="coming-soon" id="guestListStatus">&#8987; Loading guest list...</div>
+
+        <div class="guest-list-grid" id="guestListGrid"></div>
 
         <p class="site-footer">Best viewed at 800x600 &middot; &copy; 1999-2026 Ryan Beachday</p>
       </div>
@@ -1552,6 +1584,7 @@
   var screens = {
     home: document.getElementById('screenHome'),
     rsvp: document.getElementById('screenRsvp'),
+    guestList: document.getElementById('screenGuestList'),
     album: document.getElementById('screenAlbum'),
     comingSoon: document.getElementById('screenComingSoon'),
     board: document.getElementById('screenBoard'),
@@ -2072,6 +2105,31 @@
     hideLeaveWarning();
     if (fn) fn();
   });
+
+  /* ================= GUEST LIST ================= */
+
+  // RSVPs currently go straight to email via formsubmit.co and aren't
+  // captured anywhere queryable, so this list is maintained by hand for now.
+  var GUEST_LIST = [
+  ];
+
+  function renderGuestList() {
+    var statusEl = document.getElementById('guestListStatus');
+    var gridEl = document.getElementById('guestListGrid');
+    if (!GUEST_LIST.length) {
+      statusEl.hidden = false;
+      statusEl.textContent = "No RSVPs listed yet — check back soon!";
+      gridEl.innerHTML = '';
+      return;
+    }
+    statusEl.hidden = false;
+    statusEl.textContent = GUEST_LIST.length + (GUEST_LIST.length === 1 ? ' person has' : ' people have') + " RSVP'd yes so far!";
+    gridEl.innerHTML = GUEST_LIST.map(function (name) {
+      return '<span class="guest-chip">' + escapeHtml(name) + '</span>';
+    }).join('');
+  }
+
+  renderGuestList();
 
   /* ================= PHOTO ALBUM + BEACH DAY GALLERY SCREENS ================= */
 
@@ -2841,6 +2899,7 @@
 
   document.getElementById('homeBtn').addEventListener('click', goHome);
   document.getElementById('rsvpNavBtn').addEventListener('click', function () { switchScreen('rsvp'); });
+  document.getElementById('guestListNavBtn').addEventListener('click', function () { switchScreen('guestList'); });
   document.getElementById('albumNavBtn').addEventListener('click', function () { switchScreen('album'); });
   document.getElementById('comingSoonNavBtn').addEventListener('click', function () { switchScreen('comingSoon'); });
   document.getElementById('boardNavBtn').addEventListener('click', function () { switchScreen('board'); });
