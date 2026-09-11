@@ -924,9 +924,9 @@ window.RyanBeachdayGames = (function () {
           ? '<img class="leaderboard-avatar" src="' + escapeHtml(d.avatarUrl) + '" alt="">'
           : '<span class="leaderboard-avatar"></span>';
         var value = cfg.formatValue ? cfg.formatValue(d[cfg.field]) : d[cfg.field] + ' ' + cfg.label;
-        return '<li>' + trophy + avatar +
+        return '<li><div class="leaderboard-row-top">' + trophy + avatar +
           '<span class="leaderboard-name">' + escapeHtml(d.displayName) + '</span>' +
-          '<span class="leaderboard-value">' + value + '</span></li>';
+          '</div><div class="leaderboard-value">' + value + '</div></li>';
       }).join('');
     }
 
