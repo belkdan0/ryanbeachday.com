@@ -861,12 +861,12 @@ window.RyanBeachdayGames = (function () {
         return;
       }
       el.innerHTML = docs.map(function (d, i) {
+        var trophy = '<span class="leaderboard-trophy">' + (i === 0 ? '\u{1F3C6}' : '') + '</span>';
         var avatar = d.avatarUrl
           ? '<img class="leaderboard-avatar" src="' + escapeHtml(d.avatarUrl) + '" alt="">'
           : '<span class="leaderboard-avatar"></span>';
-        var trophy = i === 0 ? ' \u{1F3C6}' : '';
-        return '<li>' + avatar +
-          '<span class="leaderboard-name">' + escapeHtml(d.displayName) + trophy + '</span>' +
+        return '<li>' + trophy + avatar +
+          '<span class="leaderboard-name">' + escapeHtml(d.displayName) + '</span>' +
           '<span class="leaderboard-value">' + d[field] + ' ' + label + '</span></li>';
       }).join('');
     }
