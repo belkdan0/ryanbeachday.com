@@ -1122,12 +1122,28 @@
 </div>
 <script>
 (function () {
-  var SITE_PASSWORD = 'jetskidoogins';
+  // SHA-256 of the real password, so it isn't sitting in the page as
+  // plaintext. Still client-side (this is a static site with no backend),
+  // so it's a deterrent against casual View Source snooping, not a real
+  // access-control boundary.
+  var SITE_PASSWORD_HASH = 'b231a99c031a32afabf9f4be29ba86525eb7a1645eb4921cb814ea96db23405f';
   var STORAGE_KEY = 'ryanbeachdayUnlocked';
   var overlay = document.getElementById('passwordGateOverlay');
   var form = document.getElementById('passwordGateForm');
   var input = document.getElementById('passwordGateInput');
   var error = document.getElementById('passwordGateError');
+
+  function sha256Hex(text) {
+    var data = new TextEncoder().encode(text);
+    return crypto.subtle.digest('SHA-256', data).then(function (buf) {
+      var bytes = new Uint8Array(buf);
+      var hex = '';
+      for (var i = 0; i < bytes.length; i++) {
+        hex += bytes[i].toString(16).padStart(2, '0');
+      }
+      return hex;
+    });
+  }
 
   var unlocked = false;
   try { unlocked = localStorage.getItem(STORAGE_KEY) === 'true'; } catch (e) {}
@@ -1140,14 +1156,16 @@
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (input.value === SITE_PASSWORD) {
-      try { localStorage.setItem(STORAGE_KEY, 'true'); } catch (e) {}
-      overlay.classList.remove('show');
-    } else {
-      error.hidden = false;
-      input.value = '';
-      input.focus();
-    }
+    sha256Hex(input.value).then(function (hash) {
+      if (hash === SITE_PASSWORD_HASH) {
+        try { localStorage.setItem(STORAGE_KEY, 'true'); } catch (err) {}
+        overlay.classList.remove('show');
+      } else {
+        error.hidden = false;
+        input.value = '';
+        input.focus();
+      }
+    });
   });
 })();
 </script>
@@ -2221,10 +2239,15 @@
 
   /* ================= GUEST LIST ================= */
 
-  // Icons cropped from the guest-icon sprite sheet, assigned one-per-guest
-  // below. Empty until populated — guests render with a placeholder emoji
-  // until then.
+  // Icons cropped from the guest-icon sprite sheet, assigned one-per-guest.
   var GUEST_ICONS = [
+    'assets/guest-icons/icon-01.png', 'assets/guest-icons/icon-02.png', 'assets/guest-icons/icon-03.png', 'assets/guest-icons/icon-04.png', 'assets/guest-icons/icon-05.png', 'assets/guest-icons/icon-06.png',
+    'assets/guest-icons/icon-07.png', 'assets/guest-icons/icon-08.png', 'assets/guest-icons/icon-09.png', 'assets/guest-icons/icon-10.png', 'assets/guest-icons/icon-11.png', 'assets/guest-icons/icon-12.png',
+    'assets/guest-icons/icon-13.png', 'assets/guest-icons/icon-14.png', 'assets/guest-icons/icon-15.png', 'assets/guest-icons/icon-16.png', 'assets/guest-icons/icon-17.png', 'assets/guest-icons/icon-18.png',
+    'assets/guest-icons/icon-19.png', 'assets/guest-icons/icon-20.png', 'assets/guest-icons/icon-21.png', 'assets/guest-icons/icon-22.png', 'assets/guest-icons/icon-23.png', 'assets/guest-icons/icon-24.png',
+    'assets/guest-icons/icon-25.png', 'assets/guest-icons/icon-26.png', 'assets/guest-icons/icon-27.png', 'assets/guest-icons/icon-28.png', 'assets/guest-icons/icon-29.png', 'assets/guest-icons/icon-30.png',
+    'assets/guest-icons/icon-31.png', 'assets/guest-icons/icon-32.png', 'assets/guest-icons/icon-33.png', 'assets/guest-icons/icon-34.png', 'assets/guest-icons/icon-35.png', 'assets/guest-icons/icon-36.png',
+    'assets/guest-icons/icon-37.png', 'assets/guest-icons/icon-38.png', 'assets/guest-icons/icon-39.png', 'assets/guest-icons/icon-40.png', 'assets/guest-icons/icon-41.png', 'assets/guest-icons/icon-42.png'
   ];
 
   // Hand-typed backlog of RSVPs (and their compliments) from before this was
