@@ -511,6 +511,11 @@
 
   .modal-overlay.show { display: flex; }
 
+  .password-gate-overlay {
+    background: #008080;
+    z-index: 2147483647;
+  }
+
   .warning-window { width: 100%; max-width: 380px; }
 
   .warning-body {
@@ -647,20 +652,62 @@
   }
 
   .guest-list-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
     margin-top: 6px;
   }
 
-  .guest-chip {
-    display: inline-block;
-    padding: 8px 14px;
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #fff #808080 #808080 #fff;
+  .guest-card {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px;
+    border: 1px inset #808080;
+    background: #fff;
+  }
+
+  .guest-icon {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    object-fit: contain;
+    background: #f0f0f0;
+    border: 1px solid #808080;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+
+  .guest-icon-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .guest-card-body {
+    min-width: 0;
+  }
+
+  .guest-card-name {
     font-family: "Times New Roman", Times, serif;
+    font-weight: bold;
     font-size: 14px;
+  }
+
+  .guest-plus-one {
+    font-weight: normal;
+    color: #555;
+  }
+
+  .guest-card-quote {
+    font-family: "Times New Roman", Times, serif;
+    font-style: italic;
+    font-size: 12px;
+    color: #444;
+    margin-top: 3px;
+    overflow-wrap: break-word;
   }
 
   .construction {
@@ -1051,6 +1098,59 @@
 </style>
 </head>
 <body>
+<div class="modal-overlay show password-gate-overlay" id="passwordGateOverlay">
+  <div class="window warning-window">
+    <div class="title-bar">
+      <div class="title-bar-text"><span>&#128274;</span> Password Required</div>
+    </div>
+    <div class="window-body">
+      <form id="passwordGateForm">
+        <p style="font-family:'Times New Roman',Times,serif;font-size:14px;margin-top:0;">
+          This site is password protected. Enter the password to continue.
+        </p>
+        <div class="field-row">
+          <label class="field-label" for="passwordGateInput">Password</label>
+          <input class="text-field" type="password" id="passwordGateInput" autocomplete="off" required>
+        </div>
+        <p id="passwordGateError" style="color:#a00;font-family:'Times New Roman',Times,serif;font-size:13px;margin:0 0 12px;" hidden>Incorrect password. Try again.</p>
+        <div class="submit-row">
+          <button type="submit">Enter Site</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var SITE_PASSWORD = 'jetskidoogins';
+  var STORAGE_KEY = 'ryanbeachdayUnlocked';
+  var overlay = document.getElementById('passwordGateOverlay');
+  var form = document.getElementById('passwordGateForm');
+  var input = document.getElementById('passwordGateInput');
+  var error = document.getElementById('passwordGateError');
+
+  var unlocked = false;
+  try { unlocked = localStorage.getItem(STORAGE_KEY) === 'true'; } catch (e) {}
+
+  if (unlocked) {
+    overlay.classList.remove('show');
+  } else {
+    input.focus();
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (input.value === SITE_PASSWORD) {
+      try { localStorage.setItem(STORAGE_KEY, 'true'); } catch (e) {}
+      overlay.classList.remove('show');
+    } else {
+      error.hidden = false;
+      input.value = '';
+      input.focus();
+    }
+  });
+})();
+</script>
 <div class="desktop">
   <div class="sticker-row">
     <img class="sticker sticker-panda" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXRucjl6MGFsZ2Q4d2tkdTB2OWJwOXNxZDA4Yjg5ODM3YXQwejFnaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jDu9R1oxkbsYtoxtVn/giphy.gif" alt="" loading="lazy">
@@ -2070,7 +2170,7 @@
     var submitBtn = rsvpForm.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
-    recordGuestListEntry(guestDisplayName()).then(function () {
+    recordGuestListEntry(guestListEntryFromForm()).then(function () {
       rsvpForm.submit();
     });
   });
@@ -2121,29 +2221,77 @@
 
   /* ================= GUEST LIST ================= */
 
-  // Hand-typed backlog of RSVPs from before this list was captured
-  // automatically. New "yes" RSVPs are appended live via Firestore below.
+  // Icons cropped from the guest-icon sprite sheet, assigned one-per-guest
+  // below. Empty until populated — guests render with a placeholder emoji
+  // until then.
+  var GUEST_ICONS = [
+  ];
+
+  // Hand-typed backlog of RSVPs (and their compliments) from before this was
+  // captured automatically. New "yes" RSVPs are appended live via Firestore.
   var GUEST_LIST = [
-    'Ryan L.', 'Daniel B.', 'Asher W.', 'Hannah R.', 'Sophie B + Caleb',
-    'Zoe N', 'remdog', 'Abbey M.', 'Maria M.', 'Victor B.', 'Darlene K.', 'Sarah G.'
+    { name: 'Ryan L.', compliment: ':)' },
+    { name: 'Daniel B.', compliment: 'I love my sweet shnookums' },
+    { name: 'Asher W.', compliment: 'Ryan you are my hero' },
+    { name: 'Hannah R.', compliment: 'i like the squishy light on his desk' },
+    { name: 'Sophie B.', plusOne: 'Caleb', compliment: 'Ryan can always make me laugh so hard I cry!!!' },
+    { name: 'Zoe N.', compliment: 'I love his rich baritone register' },
+    { name: 'remdog', compliment: "ryan's the best person i know" },
+    { name: 'Abbey M.', compliment: 'I could back bend into candlestick every day with this handsome fellow' },
+    { name: 'Maria M.', compliment: 'Ryan is the best ant beetle caterpillar grasshopper ladybug I ever did see' },
+    { name: 'Victor B.', compliment: 'He gets me' },
+    { name: 'Darlene K.', compliment: 'Beautful spirit and approach to the world <3' },
+    { name: 'Sarah G.', compliment: 'I love his little butt' }
   ];
 
   var liveGuestList = [];
 
+  // Deterministic per-name icon so the same guest keeps the same icon
+  // across renders, with a linear-probe fallback so nobody visible right
+  // now shares an icon with another visible guest (mirrors pickAvatarForName).
+  function pickGuestIcon(name, usedSet) {
+    if (!GUEST_ICONS.length) return null;
+    var idx = hashString(normalizeAuthorKey(name)) % GUEST_ICONS.length;
+    var attempts = 0;
+    while (usedSet[GUEST_ICONS[idx]] && attempts < GUEST_ICONS.length) {
+      idx = (idx + 1) % GUEST_ICONS.length;
+      attempts++;
+    }
+    usedSet[GUEST_ICONS[idx]] = true;
+    return GUEST_ICONS[idx];
+  }
+
   function renderGuestList() {
     var statusEl = document.getElementById('guestListStatus');
     var gridEl = document.getElementById('guestListGrid');
-    var allNames = GUEST_LIST.concat(liveGuestList);
-    if (!allNames.length) {
+    var allEntries = GUEST_LIST.concat(liveGuestList);
+    if (!allEntries.length) {
       statusEl.hidden = false;
       statusEl.textContent = "No RSVPs listed yet — check back soon!";
       gridEl.innerHTML = '';
       return;
     }
     statusEl.hidden = false;
-    statusEl.textContent = allNames.length + (allNames.length === 1 ? ' person has' : ' people have') + " RSVP'd yes so far!";
-    gridEl.innerHTML = allNames.map(function (name) {
-      return '<span class="guest-chip">' + escapeHtml(name) + '</span>';
+    statusEl.textContent = allEntries.length + (allEntries.length === 1 ? ' person has' : ' people have') + " RSVP'd yes so far!";
+
+    var usedIcons = {};
+    gridEl.innerHTML = allEntries.map(function (entry) {
+      var icon = pickGuestIcon(entry.name, usedIcons);
+      var iconHtml = icon
+        ? '<img class="guest-icon" src="' + escapeHtml(icon) + '" alt="">'
+        : '<span class="guest-icon guest-icon-placeholder">&#127958;</span>';
+      var plusOneHtml = entry.plusOne ? ' <span class="guest-plus-one">+ ' + escapeHtml(entry.plusOne) + '</span>' : '';
+      var quoteHtml = entry.compliment
+        ? '<div class="guest-card-quote">&ldquo;' + escapeHtml(entry.compliment) + '&rdquo;</div>'
+        : '';
+      return '' +
+        '<div class="guest-card">' +
+        iconHtml +
+        '<div class="guest-card-body">' +
+        '<div class="guest-card-name">' + escapeHtml(entry.name) + plusOneHtml + '</div>' +
+        quoteHtml +
+        '</div>' +
+        '</div>';
     }).join('');
   }
 
@@ -2157,27 +2305,30 @@
     return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.';
   }
 
-  // Plus-ones are shown by first name only, e.g. "Sophie B + Caleb".
+  // Plus-ones are shown by first name only, e.g. "Sophie B. + Caleb".
   function formatPlusOneName(fullName) {
     var parts = fullName.trim().split(/\s+/).filter(Boolean);
     return parts[0] || fullName.trim();
   }
 
-  function guestDisplayName() {
+  function guestListEntryFromForm() {
     var fullName = document.getElementById('fullName').value.trim();
-    var display = formatGuestName(fullName);
+    var compliment = document.getElementById('compliment').value.trim();
+    var entry = { name: formatGuestName(fullName), compliment: compliment };
     var wantsPlusOneChecked = document.querySelector('input[name="wants_plus_one"]:checked');
     var plusOneVal = plusOneName.value.trim();
     if (wantsPlusOneChecked && wantsPlusOneChecked.value === 'Yes' && plusOneVal) {
-      display += ' + ' + formatPlusOneName(plusOneVal);
+      entry.plusOne = formatPlusOneName(plusOneVal);
     }
-    return display;
+    return entry;
   }
 
-  function recordGuestListEntry(name) {
-    if (!fsDb || !name) return Promise.resolve();
+  function recordGuestListEntry(entry) {
+    if (!fsDb || !entry || !entry.name) return Promise.resolve();
+    var data = { name: entry.name, compliment: entry.compliment || '', createdAt: Date.now() };
+    if (entry.plusOne) data.plusOne = entry.plusOne;
     return withTimeout(
-      fsDb.collection('guestList').add({ name: name, createdAt: Date.now() }),
+      fsDb.collection('guestList').add(data),
       4000,
       'guestlist/timeout'
     ).catch(function (err) {
@@ -2869,8 +3020,8 @@
     fsDb.collection('guestList').orderBy('createdAt', 'asc').limit(500).onSnapshot(function (snapshot) {
       liveGuestList = [];
       snapshot.forEach(function (doc) {
-        var name = doc.data().name;
-        if (name) liveGuestList.push(name);
+        var d = doc.data();
+        if (d.name) liveGuestList.push({ name: d.name, plusOne: d.plusOne, compliment: d.compliment });
       });
       renderGuestList();
     }, function (err) {
